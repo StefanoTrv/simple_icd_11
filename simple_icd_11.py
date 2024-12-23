@@ -26,7 +26,7 @@ class ICDAPIClient(ABC):
 
     # Abstract method that returns true if r is the name of a valid release in the given language, false otherwise
     @abstractmethod
-    def checkRelease(self, r : str, language : str) -> bool:
+    def checkRelease(self, release : str, language : str) -> bool:
         raise NotImplementedError()
 
 # Class for interrogating the official ICD API
@@ -122,14 +122,14 @@ class ICDOfficialAPIClient(ICDAPIClient):
         else:
             raise ConnectionError("Error happened while finding code of last release in language " + language + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
     
-    def checkRelease(self, r : str, language : str):
-        uri = self.locationUrl + r + "/mms"
+    def checkRelease(self, release : str, language : str) -> bool:
+        uri = self.locationUrl + release + "/mms"
         headers = {'Authorization':  'Bearer '+self.token, 
            'Accept': 'application/json', 
            'Accept-Language': language,
 	        'API-Version': 'v2',
             'linearizationname': 'mms',
-            'releaseId': r}
+            'releaseId': release}
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
@@ -140,7 +140,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
         elif r.status_code == 200:
             return True
         else:
-            raise ConnectionError("Error happened while checking if release " + r + " exists in language " + language +". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
+            raise ConnectionError("Error happened while checking if release " + release + " exists in language " + language +". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
     
 
 class ICDOtherAPIClient(ICDAPIClient):
