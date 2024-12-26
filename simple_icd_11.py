@@ -43,25 +43,25 @@ class ICDOfficialAPIClient(ICDAPIClient):
         self.clientSecret = clientSecret #allows corrections of the secret
         # Avoid re-initializing an existing instance
         if not hasattr(self, "clientId"):  # Check if the instance is being initialized for the first time
-            self.locationUrl = "http://id.who.int/icd/release/11/"
-            self.clientId = clientId
+            self._locationUrl = "http://id.who.int/icd/release/11/"
+            self._clientId = clientId
             self.__authenticate()
 
     
     # Uses the credentials to create a new token
     def __authenticate(self):
-        payload = {'client_id': self.clientId, 
+        payload = {'client_id': self._clientId, 
 	   	   'client_secret': self.clientSecret, 
            'scope': 'icdapi_access', 
            'grant_type': 'client_credentials'}
         r = requests.post("https://icdaccessmanagement.who.int/connect/token", data=payload).json()
         if "error" in r:
             raise ConnectionError("Authentication attempt with official API ended with an error. Error details: "+r["error"])
-        self.token = r['access_token']
+        self.__token = r['access_token']
 
     def lookupCode(self, code : str, release : str, language : str) -> dict:
-        uri = self.locationUrl + release + "/mms/codeinfo/" + code
-        headers = {'Authorization':  'Bearer '+ self.token, 
+        uri = self._locationUrl + release + "/mms/codeinfo/" + code
+        headers = {'Authorization':  'Bearer '+ self.__token, 
            'Accept': 'application/json', 
            'Accept-Language': language,
 	        'API-Version': 'v2',
@@ -71,7 +71,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
-            headers["Authorization"] = "Bearer "+ self.token
+            headers["Authorization"] = "Bearer "+ self.__token
             r = requests.get(uri, headers=headers)
         if r.status_code == 404:
             raise LookupError("No ICD-11 entity with code " + code + " was found for release " + release + " in language " + language + ".")
@@ -82,8 +82,8 @@ class ICDOfficialAPIClient(ICDAPIClient):
             raise ConnectionError("Error happened while finding entity for code " + code + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
     
     def lookupId(self, id : str, release : str, language : str):
-        uri = self.locationUrl + release + "/mms/" + id
-        headers = {'Authorization':  'Bearer '+self.token, 
+        uri = self._locationUrl + release + "/mms/" + id
+        headers = {'Authorization':  'Bearer '+self.__token, 
            'Accept': 'application/json', 
            'Accept-Language': language,
 	        'API-Version': 'v2',
@@ -93,7 +93,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
-            headers["Authorization"] = "Bearer "+ self.token
+            headers["Authorization"] = "Bearer "+ self.__token
             r = requests.get(uri, headers=headers)
         if r.status_code == 404:
             raise LookupError("No ICD-11 entity with id " + id + " was found for release " + release + " in language " + language + ".")
@@ -103,8 +103,8 @@ class ICDOfficialAPIClient(ICDAPIClient):
             raise ConnectionError("Error happened while finding entity for id " + id + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
     
     def getLatestRelease(self, language : str) -> str:
-        uri = self.locationUrl + "mms"
-        headers = {'Authorization':  'Bearer '+ self.token, 
+        uri = self._locationUrl + "mms"
+        headers = {'Authorization':  'Bearer '+ self.__token, 
            'Accept': 'application/json', 
            'Accept-Language': language,
 	        'API-Version': 'v2',
@@ -112,7 +112,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
-            headers["Authorization"] = "Bearer "+ self.token
+            headers["Authorization"] = "Bearer "+ self.__token
             r = requests.get(uri, headers=headers)
         if r.status_code == 200:
             j = json.loads(r.text)
@@ -123,8 +123,8 @@ class ICDOfficialAPIClient(ICDAPIClient):
             raise ConnectionError("Error happened while finding code of last release in language " + language + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
     
     def checkRelease(self, release : str, language : str) -> bool:
-        uri = self.locationUrl + release + "/mms"
-        headers = {'Authorization':  'Bearer '+self.token, 
+        uri = self._locationUrl + release + "/mms"
+        headers = {'Authorization':  'Bearer '+self.__token, 
            'Accept': 'application/json', 
            'Accept-Language': language,
 	        'API-Version': 'v2',
@@ -133,7 +133,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
-            headers["Authorization"] = "Bearer "+ self.token
+            headers["Authorization"] = "Bearer "+ self.__token
             r = requests.get(uri, headers=headers)
         if r.status_code == 404:
             return False

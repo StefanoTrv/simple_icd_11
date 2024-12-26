@@ -13,14 +13,14 @@ class TestICDOfficialAPIClient(unittest.TestCase):
         cls.client = ICDOfficialAPIClient(cls.clientId,cls.clientSecret)
     
     def compromiseToken(self):
-        if(self.client.token[-1]=="A"):
-            self.client.token = self.client.token[:-1]+"B"
+        if(self.client._ICDOfficialAPIClient__token[-1]=="A"): # type: ignore
+            self.client._ICDOfficialAPIClient__token = self.client._ICDOfficialAPIClient__token[:-1]+"B" # type: ignore
         else:
-            self.client.token = self.client.token[:-1]+"A"
-        if(self.client.token[0]=="w"):
-            self.client.token = "a"+self.client.token[1:]
+            self.client._ICDOfficialAPIClient__token = self.client._ICDOfficialAPIClient__token[:-1]+"A" # type: ignore
+        if(self.client._ICDOfficialAPIClient__token[0]=="w"): # type: ignore
+            self.client._ICDOfficialAPIClient__token = "a"+self.client._ICDOfficialAPIClient__token[1:] # type: ignore
         else:
-            self.client.token = "w"+self.client.token[1:]
+            self.client._ICDOfficialAPIClient__token = "w"+self.client._ICDOfficialAPIClient__token[1:] # type: ignore
     
     def testLookupCodeOk(self):
         json_dict = self.client.lookupCode("1F0Y","2024-01","en")
