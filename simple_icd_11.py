@@ -1,3 +1,4 @@
+from __future__ import annotations
 import requests, json
 from abc import ABC, abstractmethod
 
@@ -81,7 +82,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
         else:
             raise ConnectionError("Error happened while finding entity for code " + code + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
     
-    def lookupId(self, id : str, release : str, language : str):
+    def lookupId(self, id : str, release : str, language : str) -> dict:
         uri = self._locationUrl + release + "/mms/" + id
         headers = {'Authorization':  'Bearer '+self.__token, 
            'Accept': 'application/json', 
@@ -146,5 +147,227 @@ class ICDOfficialAPIClient(ICDAPIClient):
 class ICDOtherAPIClient(ICDAPIClient):
     pass
 
-class Entity:
-    pass
+class Entity(ABC):
+    @abstractmethod
+    def getId(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getURI(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getCode(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getTitle(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getDefinition(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getLongDefinition(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getFullySpecifiedName(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getDiagnosticCriteria(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getCodingNote(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getBlockId(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getBlockRange(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getClassKind(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def isResidual(self) -> bool:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getChildren(self) -> list[Entity]:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getChildrenElsewhere(self) -> list[Entity]:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getDescendants(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getParent(self) -> Entity | None:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getAncestors(self) -> list[Entity]:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getIndexTerm(self) -> list[str]:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getInclusion(self) -> list[str]:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getExclusion(self) -> list[Entity]:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getRelatedEntitiesInMaternalChapter(self) -> str:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def getRelatedEntitiesInPerinatalChapter(self) -> str:
+        raise NotImplementedError()
+
+
+class ProxyEntity(Entity):
+    def __init__(self, explorer : ICDExplorer, id : str, uri : str, title : str | None = None, parent : Entity | None = None) -> None:
+        self.__real = None
+        self.__explorer = explorer
+        self.__id = id
+        self.__uri = uri
+        self.__title = title
+        self.__parent = parent
+
+    def getId(self) -> str:
+        return self.__id
+    
+    def getURI(self) -> str:
+        return self.__uri
+    
+    def getCode(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getTitle() # type: ignore
+    
+    def getTitle(self) -> str:
+        if self.__title is not None:
+            return self.__title
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        self.__title = self.__real.getTitle() # type: ignore
+        return self.__title
+    
+    def getDefinition(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getDefinition() # type: ignore
+    
+    def getLongDefinition(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getLongDefinition() # type: ignore
+    
+    def getFullySpecifiedName(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getFullySpecifiedName() # type: ignore
+    
+    def getDiagnosticCriteria(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getDiagnosticCriteria() # type: ignore
+    
+    def getCodingNote(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getCodingNote() # type: ignore
+    
+    def getBlockId(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getBlockId() # type: ignore
+    
+    def getBlockRange(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getBlockRange() # type: ignore
+    
+    def getClassKind(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getClassKind() # type: ignore
+    
+    def isResidual(self) -> bool:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.isResidual() # type: ignore
+    
+    def getChildren(self) -> list[Entity]:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getChildren() # type: ignore
+    
+    def getChildrenElsewhere(self) -> list[Entity]:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getChildrenElsewhere() # type: ignore
+    
+    def getDescendants(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getDescendants() # type: ignore
+    
+    def getParent(self) -> Entity | None:
+        if self.__parent is not None:
+            return self.__parent
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        self.__parent = self.__real.getParent() # type: ignore
+        return self.__parent
+    
+    def getAncestors(self) -> list[Entity]:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getAncestors() # type: ignore
+    
+    def getIndexTerm(self) -> list[str]:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getIndexTerm() # type: ignore
+    
+    def getInclusion(self) -> list[str]:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getInclusion() # type: ignore
+    
+    def getExclusion(self) -> list[Entity]:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getExclusion() # type: ignore
+    
+    def getRelatedEntitiesInMaternalChapter(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getRelatedEntitiesInMaternalChapter() # type: ignore
+    
+    def getRelatedEntitiesInPerinatalChapter(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getRelatedEntitiesInPerinatalChapter() # type: ignore
+
+
+class ICDExplorer:
+    def _getRealEntity(self, id : str) -> Entity:
+        return Entity()
