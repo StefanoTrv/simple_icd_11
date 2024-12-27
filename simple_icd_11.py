@@ -147,6 +147,8 @@ class ICDOfficialAPIClient(ICDAPIClient):
 class ICDOtherAPIClient(ICDAPIClient):
     pass
 
+
+# Abstract class representing an ICD-11 MMS entity
 class Entity(ABC):
     @abstractmethod
     def getId(self) -> str:
@@ -201,7 +203,7 @@ class Entity(ABC):
         raise NotImplementedError()
     
     @abstractmethod
-    def getChildren(self) -> list[Entity]:
+    def getChildren(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
         raise NotImplementedError()
     
     @abstractmethod
@@ -209,7 +211,7 @@ class Entity(ABC):
         raise NotImplementedError()
     
     @abstractmethod
-    def getDescendants(self) -> str:
+    def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
         raise NotImplementedError()
     
     @abstractmethod
@@ -229,7 +231,7 @@ class Entity(ABC):
         raise NotImplementedError()
     
     @abstractmethod
-    def getExclusion(self) -> list[Entity]:
+    def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]:
         raise NotImplementedError()
     
     @abstractmethod
@@ -239,8 +241,13 @@ class Entity(ABC):
     @abstractmethod
     def getRelatedEntitiesInPerinatalChapter(self) -> str:
         raise NotImplementedError()
+    
+    @abstractmethod
+    def getBrowserUrl(self) -> str:
+        raise NotImplementedError()
 
 
+# Proxy class for entities that were found in the description of other entities, so that for now we have limited information about them
 class ProxyEntity(Entity):
     def __init__(self, explorer : ICDExplorer, id : str, uri : str, title : str | None = None, parent : Entity | None = None) -> None:
         self.__real = None
@@ -310,24 +317,22 @@ class ProxyEntity(Entity):
         return self.__real.getClassKind() # type: ignore
     
     def isResidual(self) -> bool:
-        if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
-        return self.__real.isResidual() # type: ignore
+        return "unspecified" in self.__id or "other" in self.__id
     
-    def getChildren(self) -> list[Entity]:
+    def getChildren(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
-        return self.__real.getChildren() # type: ignore
+        return self.__real.getChildren(includeChildrenElsewhere = includeChildrenElsewhere) # type: ignore
     
     def getChildrenElsewhere(self) -> list[Entity]:
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getChildrenElsewhere() # type: ignore
     
-    def getDescendants(self) -> str:
+    def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
-        return self.__real.getDescendants() # type: ignore
+        return self.__real.getDescendants(includeChildrenElsewhere = includeChildrenElsewhere) # type: ignore
     
     def getParent(self) -> Entity | None:
         if self.__parent is not None:
@@ -352,10 +357,10 @@ class ProxyEntity(Entity):
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getInclusion() # type: ignore
     
-    def getExclusion(self) -> list[Entity]:
+    def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]:
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
-        return self.__real.getExclusion() # type: ignore
+        return self.__real.getExclusion(includeFromUpperLevels = includeFromUpperLevels) # type: ignore
     
     def getRelatedEntitiesInMaternalChapter(self) -> str:
         if self.__real is None:
@@ -366,6 +371,131 @@ class ProxyEntity(Entity):
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getRelatedEntitiesInPerinatalChapter() # type: ignore
+    
+    def getBrowserUrl(self) -> str:
+        if self.__real is None:
+            self.__explorer._getRealEntity(self.__id)
+        return self.__real.getBrowserUrl() # type: ignore
+
+
+# Concrete class containing all the data (that we are interested in) of single ICD-11 MMS entities
+# String values for fields missing from this entity are empty strings, not None values
+class RealEntity(Entity):
+    def __init__(self, id : str, uri : str, code : str, title : str, definition : str, longDefinition : str, fullySpecifiedName : str, diagnosticCriteria : str, codingNote : str, blockId : str, blockRange : str, classKind : str, children : list[Entity], childrenElsewhere : list[Entity], parent : Entity | None, indexTerm : list[str], inclusion : list[str], exclusion : list[Entity], relatedEntitiesInMaternalChapter : str, relatedEntitiesInPerinatalChapter : str, browserUrl : str) -> None:
+        self.__id = id
+        self.__uri = uri
+        self.__code = code
+        self.__title = title
+        self.__definition = definition
+        self.__longDefinition = longDefinition
+        self.__fullySpecifiedName = fullySpecifiedName
+        self.__diagnosticCriteria = diagnosticCriteria
+        self.__codingNote = codingNote
+        self.__blockId = blockId
+        self.__blockRange = blockRange
+        self.__classKind = classKind
+        self.__children = children
+        self.__childrenElsewhere = childrenElsewhere
+        self.__parent = parent
+        self.__indexTerm = indexTerm
+        self.__inclusion = inclusion
+        self.__exclusion = exclusion
+        self.__relatedEntitiesInMaternalChapter = relatedEntitiesInMaternalChapter
+        self.__relatedEntitiesInPerinatalChapter = relatedEntitiesInPerinatalChapter
+        self.__browserUrl = browserUrl
+
+    def getId(self) -> str:
+        return self.__id
+    
+    def getURI(self) -> str:
+        return self.__uri
+    
+    def getCode(self) -> str:
+        return self.__code
+    
+    def getTitle(self) -> str:
+        return self.__title
+    
+    def getDefinition(self) -> str:
+        return self.__definition
+    
+    def getLongDefinition(self) -> str:
+        return self.__longDefinition
+    
+    def getFullySpecifiedName(self) -> str:
+        return self.__fullySpecifiedName
+    
+    def getDiagnosticCriteria(self) -> str:
+        return self.__diagnosticCriteria
+    
+    def getCodingNote(self) -> str:
+        return self.__codingNote
+    
+    def getBlockId(self) -> str:
+        return self.__blockId
+    
+    def getBlockRange(self) -> str:
+        return self.__blockRange
+    
+    def getClassKind(self) -> str:
+        return self.__classKind
+    
+    def isResidual(self) -> bool:
+        return "unspecified" in self.__id or "other" in self.__id
+    
+    def getChildren(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
+        if includeChildrenElsewhere:
+            return self.__children + self.__childrenElsewhere
+        else:
+            return self.__children.copy()
+    
+    def getChildrenElsewhere(self) -> list[Entity]:
+        return self.__childrenElsewhere.copy()
+    
+    def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]: #implementation could be made more efficient
+        l = []
+        for child in self.__children:
+            l.append(child)
+            l += child.getDescendants(includeChildrenElsewhere=includeChildrenElsewhere)
+        if not includeChildrenElsewhere:
+            return l
+        for child in self.__childrenElsewhere:
+            l.append(child)
+            l += child.getDescendants(includeChildrenElsewhere=True)
+        return l
+    
+    def getParent(self) -> Entity | None:
+        return self.__parent
+    
+    def getAncestors(self) -> list[Entity]: #implementation could be made more efficient
+        if self.__parent is None:
+            return []
+        else:
+            return [self.__parent] + self.__parent.getAncestors()
+    
+    def getIndexTerm(self) -> list[str]:
+        return self.__indexTerm.copy()
+    
+    def getInclusion(self) -> list[str]:
+        return self.__inclusion.copy()
+    
+    def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]: #implementation could be made more efficient
+        if includeFromUpperLevels and self.__parent is not None:
+            if self.__exclusion == []: #avoids merging with empty lists
+                return self.__parent.getExclusion(includeFromUpperLevels=True)
+            else:
+                return self.__exclusion.copy() + self.__parent.getExclusion(includeFromUpperLevels=True)
+        else:
+            return self.__exclusion.copy()
+    
+    def getRelatedEntitiesInMaternalChapter(self) -> str:
+        return self.__relatedEntitiesInMaternalChapter
+    
+    def getRelatedEntitiesInPerinatalChapter(self) -> str:
+        return self.__relatedEntitiesInPerinatalChapter
+    
+    def getBrowserUrl(self) -> str:
+        return self.__browserUrl
 
 
 class ICDExplorer:
