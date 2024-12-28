@@ -183,7 +183,7 @@ class Entity(ABC):
         raise NotImplementedError()
     
     @abstractmethod
-    def getCodingNote(self) -> str:
+    def getCodingNote(self, includeFromUpperLevels : bool = False) -> str:
         raise NotImplementedError()
     
     @abstractmethod
@@ -235,11 +235,11 @@ class Entity(ABC):
         raise NotImplementedError()
     
     @abstractmethod
-    def getRelatedEntitiesInMaternalChapter(self) -> str:
+    def getRelatedEntitiesInMaternalChapter(self) -> list[Entity]:
         raise NotImplementedError()
     
     @abstractmethod
-    def getRelatedEntitiesInPerinatalChapter(self) -> str:
+    def getRelatedEntitiesInPerinatalChapter(self) -> list[Entity]:
         raise NotImplementedError()
     
     @abstractmethod
@@ -249,12 +249,11 @@ class Entity(ABC):
 
 # Proxy class for entities that were found in the description of other entities, so that for now we have limited information about them
 class ProxyEntity(Entity):
-    def __init__(self, explorer : ICDExplorer, id : str, uri : str, title : str | None = None, parent : Entity | None = None) -> None:
+    def __init__(self, explorer : ICDExplorer, id : str, uri : str, parent : Entity | None = None) -> None:
         self.__real = None
         self.__explorer = explorer
         self.__id = id
         self.__uri = uri
-        self.__title = title
         self.__parent = parent
 
     def getId(self) -> str:
@@ -269,12 +268,9 @@ class ProxyEntity(Entity):
         return self.__real.getTitle() # type: ignore
     
     def getTitle(self) -> str:
-        if self.__title is not None:
-            return self.__title
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
-        self.__title = self.__real.getTitle() # type: ignore
-        return self.__title
+        return self.__real.getTitle() # type: ignore
     
     def getDefinition(self) -> str:
         if self.__real is None:
@@ -296,10 +292,10 @@ class ProxyEntity(Entity):
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getDiagnosticCriteria() # type: ignore
     
-    def getCodingNote(self) -> str:
+    def getCodingNote(self, includeFromUpperLevels : bool = False) -> str:
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
-        return self.__real.getCodingNote() # type: ignore
+        return self.__real.getCodingNote(includeFromUpperLevels=includeFromUpperLevels) # type: ignore
     
     def getBlockId(self) -> str:
         if self.__real is None:
@@ -362,12 +358,12 @@ class ProxyEntity(Entity):
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getExclusion(includeFromUpperLevels = includeFromUpperLevels) # type: ignore
     
-    def getRelatedEntitiesInMaternalChapter(self) -> str:
+    def getRelatedEntitiesInMaternalChapter(self) -> list[Entity]:
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getRelatedEntitiesInMaternalChapter() # type: ignore
     
-    def getRelatedEntitiesInPerinatalChapter(self) -> str:
+    def getRelatedEntitiesInPerinatalChapter(self) -> list[Entity]:
         if self.__real is None:
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getRelatedEntitiesInPerinatalChapter() # type: ignore
@@ -377,11 +373,14 @@ class ProxyEntity(Entity):
             self.__explorer._getRealEntity(self.__id)
         return self.__real.getBrowserUrl() # type: ignore
 
+    def _setParent(self, p : Entity) -> None:
+        self.__parent = p
+
 
 # Concrete class containing all the data (that we are interested in) of single ICD-11 MMS entities
 # String values for fields missing from this entity are empty strings, not None values
 class RealEntity(Entity):
-    def __init__(self, id : str, uri : str, code : str, title : str, definition : str, longDefinition : str, fullySpecifiedName : str, diagnosticCriteria : str, codingNote : str, blockId : str, blockRange : str, classKind : str, children : list[Entity], childrenElsewhere : list[Entity], parent : Entity | None, indexTerm : list[str], inclusion : list[str], exclusion : list[Entity], relatedEntitiesInMaternalChapter : str, relatedEntitiesInPerinatalChapter : str, browserUrl : str) -> None:
+    def __init__(self, id : str, uri : str, code : str, title : str, definition : str, longDefinition : str, fullySpecifiedName : str, diagnosticCriteria : str, codingNote : str, blockId : str, blockRange : str, classKind : str, children : list[Entity], childrenElsewhere : list[Entity], parent : Entity | None, indexTerm : list[str], inclusion : list[str], exclusion : list[Entity], relatedEntitiesInMaternalChapter : list[Entity], relatedEntitiesInPerinatalChapter : list[Entity], browserUrl : str) -> None:
         self.__id = id
         self.__uri = uri
         self.__code = code
@@ -428,8 +427,14 @@ class RealEntity(Entity):
     def getDiagnosticCriteria(self) -> str:
         return self.__diagnosticCriteria
     
-    def getCodingNote(self) -> str:
-        return self.__codingNote
+    def getCodingNote(self, includeFromUpperLevels : bool = False) -> str: #implementation could be made more efficient
+        if includeFromUpperLevels and self.__parent is not None:
+            if self.__codingNote == "": #avoids merging with empty lists
+                return self.__parent.getCodingNote(includeFromUpperLevels=True)
+            else:
+                return self.__parent.getCodingNote(includeFromUpperLevels=True) + "\n" + self.__codingNote
+        else:
+            return self.__codingNote
     
     def getBlockId(self) -> str:
         return self.__blockId
@@ -488,16 +493,208 @@ class RealEntity(Entity):
         else:
             return self.__exclusion.copy()
     
-    def getRelatedEntitiesInMaternalChapter(self) -> str:
-        return self.__relatedEntitiesInMaternalChapter
+    def getRelatedEntitiesInMaternalChapter(self) -> list[Entity]:
+        return self.__relatedEntitiesInMaternalChapter.copy()
     
-    def getRelatedEntitiesInPerinatalChapter(self) -> str:
-        return self.__relatedEntitiesInPerinatalChapter
+    def getRelatedEntitiesInPerinatalChapter(self) -> list[Entity]:
+        return self.__relatedEntitiesInPerinatalChapter.copy()
     
     def getBrowserUrl(self) -> str:
         return self.__browserUrl
 
 
 class ICDExplorer:
+    def __init__(self, language : str, clientId : str, clientSecret : str, release : str | None = None, customUrl : str | None = None, useCodeRangesAsCodes : bool = False) -> None:
+        if customUrl is None: #creates correct API client
+            self.__clientAPI = ICDOfficialAPIClient(clientId,clientSecret)
+        else:
+            #self.__clientAPI = ICDOtherAPIClient(customUrl)
+            self.__clientAPI = ICDOfficialAPIClient(clientId,clientSecret) # TODO
+        
+        if release is None: #finds or sets release
+            self.__release = self.__clientAPI.getLatestRelease(language)
+        else:
+            if self.__clientAPI.checkRelease(release,language):
+                self.__release = release
+            else:
+                raise LookupError("Release \""+release+"\" was not found for language \""+language+"\"")
+        
+        self.__language = language
+        self.__useCodeRangesAsCodes = useCodeRangesAsCodes
+        self.__idMap = {}
+        self.__codeToIdMap = {}
+    
+    # Given a code, returns true if its a valid code for the parameters of this Explorer
+    def isValidCode(self, code : str) -> bool:
+        if code in self.__codeToIdMap:
+            return True
+        if self.__useCodeRangesAsCodes and "-" in code: #code ranges as codes
+            if self.isValidCode(code.split("-")[0]):
+                e = self.getEntityFromCode(code.split("-")[0])
+                e = e.getParent()
+                while e is not None: # controls the ancestors until it find the code or it reaches a chapter
+                    if e.getCode() == code:
+                        return True
+                return False
+            else:
+                return False
+        try:
+            dict = self.__clientAPI.lookupCode(code,self.__release,self.__language)
+            self.__createAndAddNewEntity(dict)
+            return True
+        except LookupError:
+            return False
+    
+    # Given an id, returns true if its a valid id for the parameters of this Explorer
+    def isValidId(self, id : str) -> bool:
+        if id in self.__idMap:
+            return True
+        try:
+            dict = self.__clientAPI.lookupId(id,self.__release,self.__language)
+            self.__createAndAddNewEntity(dict)
+            return True
+        except LookupError:
+            return False
+    
+    # Given a code, returns its corresponding entity
+    # Raises LookupError if code is not a valid code for the parameters of this Explorer
+    def getEntityFromCode(self, code : str) -> Entity:
+        if code in self.__codeToIdMap:
+            return self.__idMap[self.__codeToIdMap[code]]
+        if self.__useCodeRangesAsCodes and "-" in code: #code ranges as codes
+            if self.isValidCode(code.split("-")[0]):
+                e = self.getEntityFromCode(code.split("-")[0])
+                e = e.getParent()
+                while e is not None: # controls the ancestors until it find the code or it reaches a chapter
+                    if e.getCode() == code:
+                        return e
+            raise LookupError("Code range \""+code+"\" was not found for release \""+self.__release+"\" in language \""+self.__language+"\".")
+        dict = self.__clientAPI.lookupCode(code,self.__release,self.__language)
+        return self.__createAndAddNewEntity(dict)
+    
+    # Given an id, returns its corresponding entity
+    # Raises LookupError if id is not a valid id for the parameters of this Explorer
+    def getEntityFromId(self, id : str) -> Entity:
+        if id in self.__idMap:
+            return self.__idMap[id]
+        dict = self.__clientAPI.lookupId(id,self.__release,self.__language)
+        return self.__createAndAddNewEntity(dict)
+    
+    def getLanguage(self) -> str:
+        return self.__language
+    
+    def getRelease(self) -> str:
+        return self.__release
+
     def _getRealEntity(self, id : str) -> Entity:
-        return Entity()
+        return self.__createAndAddNewEntity(self.__clientAPI.lookupId(id,self.__release,self.__language))
+    
+    # Creates a new entity from its data and updates both dictionaries
+    # If new proxy entities are created in the process, they too are added to __idMap
+    def __createAndAddNewEntity(self, data : dict) -> Entity:
+        id = data["@id"].split("/mms/")[1]
+        uri = data["@id"]
+        code = data["code"]
+        title = data["title"]["@value"]
+        definition = ""
+        if "definition" in data:
+            definition = data["definition"]["@value"]
+        longDefinition = ""
+        if "longDefinition" in data:
+            longDefinition = data["longDefinition"]["@value"]
+        fullySpecifiedName = ""
+        if "fullySpecifiedName" in data:
+            fullySpecifiedName = data["fullySpecifiedName"]["@value"]
+        diagnosticCriteria = ""
+        if "diagnosticCriteria" in data:
+            diagnosticCriteria = data["diagnosticCriteria"]["@value"]
+        codingNote = ""
+        if "codingNote" in data:
+            codingNote = data["codingNote"]["@value"]
+        blockId = ""
+        if "blockId" in data:
+            blockId = data["blockId"]
+        blockRange = ""
+        if "blockRange" in data:
+            blockRange = data["blockRange"]
+        classKind = data["classKind"]
+        children : list[Entity] = []
+        newChildren : list[ProxyEntity] = []
+        if "child" in data:
+            for c in data["child"]:
+                c_id = c.split("/mms/")[1]
+                if c_id in self.__idMap:
+                    children.append(self.__idMap[c_id])
+                else:
+                    new_e = ProxyEntity(self,c_id,data["child"])
+                    newChildren.append(new_e) # their parent will be updated later
+                    children.append(new_e)
+                    self.__idMap[new_e.getId()]=new_e
+        childrenElsewhere : list[Entity] = []
+        if "foundationChildElsewhere" in data:
+            for c in data["child"]:
+                c_id = c["linearizationReference"].split("/mms/")[1]
+                if c_id in self.__idMap:
+                    childrenElsewhere.append(self.__idMap[c_id])
+                else:
+                    new_e = ProxyEntity(self,c_id,data["child"])
+                    childrenElsewhere.append(new_e)
+                    self.__idMap[new_e.getId()]=new_e
+        if classKind == "chapter":
+            parent = None
+        else:
+            p_id = data["parent"][0].split("/mms/")[1]
+            if p_id in self.__idMap:
+                parent = self.__idMap[p_id]
+            else:
+                parent = ProxyEntity(self,p_id,data["parent"][0])
+                self.__idMap[parent.getId()]=parent
+        indexTerm = []
+        if "indexTerm" in data:
+            for i in data["indexTerm"]:
+                indexTerm.append(i["label"]["@value"])
+        inclusion = []
+        if "inclusion" in data:
+            for i in data["inclusion"]:
+                inclusion.append(i["label"]["@value"])
+        exclusion = []
+        if "exclusion" in data:
+            for e in data["exclusion"]:
+                e_id = e["linearizationReference"].split("/mms/")[1]
+                if e_id in self.__idMap:
+                    exclusion.append(self.__idMap[e_id])
+                else:
+                    new_e = ProxyEntity(self,e_id,e["linearizationReference"])
+                    exclusion.append(new_e)
+                    self.__idMap[new_e.getId()]=new_e
+        relatedEntitiesInMaternalChapter = []
+        if "relatedEntitiesInMaternalChapter" in data:
+            for e in data["relatedEntitiesInMaternalChapter"]:
+                e_id = e.split("/mms/")[1]
+                if e_id in self.__idMap:
+                    relatedEntitiesInMaternalChapter.append(self.__idMap[e_id])
+                else:
+                    new_e = ProxyEntity(self,e_id,e)
+                    relatedEntitiesInMaternalChapter.append(new_e)
+                    self.__idMap[new_e.getId()]=new_e
+        relatedEntitiesInPerinatalChapter = []
+        if "relatedEntitiesInPerinatalChapter" in data:
+            for e in data["relatedEntitiesInPerinatalChapter"]:
+                e_id = e.split("/mms/")[1]
+                if e_id in self.__idMap:
+                    relatedEntitiesInPerinatalChapter.append(self.__idMap[e_id])
+                else:
+                    new_e = ProxyEntity(self,e_id,e)
+                    relatedEntitiesInPerinatalChapter.append(new_e)
+                    self.__idMap[new_e.getId()]=new_e
+        browserUrl = data["browserUrl"]
+
+        new_e = RealEntity(id,uri,code,title,definition,longDefinition,fullySpecifiedName,diagnosticCriteria,codingNote,blockId,blockRange,classKind,children,childrenElsewhere,parent,indexTerm,inclusion,exclusion,relatedEntitiesInMaternalChapter,relatedEntitiesInPerinatalChapter,browserUrl)
+        self.__idMap[id]=new_e
+        if code !="":
+            self.__codeToIdMap[code]=id
+
+        for c in newChildren:
+            c._setParent(new_e)
+        
+        return new_e
