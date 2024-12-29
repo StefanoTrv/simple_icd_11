@@ -2,7 +2,7 @@ from __future__ import annotations
 import requests, json
 from abc import ABC, abstractmethod
 
-__all__ = ["ICDAPIClient"] #exports only the needed classes
+__all__ = ["ICDExplorer","Entity"] #exports only the needed classes
 
 # Abstract class that represents the code that actually interacts with the API
 # All methods in this class and its subclasses can raise ConnectionError at any point if an unresolvable error occurs when trying to communicate with the API
@@ -264,52 +264,52 @@ class ProxyEntity(Entity):
     
     def getCode(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
-        return self.__real.getTitle() # type: ignore
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        return self.__real.getCode() # type: ignore
     
     def getTitle(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getTitle() # type: ignore
     
     def getDefinition(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getDefinition() # type: ignore
     
     def getLongDefinition(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getLongDefinition() # type: ignore
     
     def getFullySpecifiedName(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getFullySpecifiedName() # type: ignore
     
     def getDiagnosticCriteria(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getDiagnosticCriteria() # type: ignore
     
     def getCodingNote(self, includeFromUpperLevels : bool = False) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getCodingNote(includeFromUpperLevels=includeFromUpperLevels) # type: ignore
     
     def getBlockId(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getBlockId() # type: ignore
     
     def getBlockRange(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getBlockRange() # type: ignore
     
     def getClassKind(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getClassKind() # type: ignore
     
     def isResidual(self) -> bool:
@@ -317,60 +317,60 @@ class ProxyEntity(Entity):
     
     def getChildren(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getChildren(includeChildrenElsewhere = includeChildrenElsewhere) # type: ignore
     
     def getChildrenElsewhere(self) -> list[Entity]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getChildrenElsewhere() # type: ignore
     
     def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getDescendants(includeChildrenElsewhere = includeChildrenElsewhere) # type: ignore
     
     def getParent(self) -> Entity | None:
         if self.__parent is not None:
             return self.__parent
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         self.__parent = self.__real.getParent() # type: ignore
         return self.__parent
     
     def getAncestors(self) -> list[Entity]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getAncestors() # type: ignore
     
     def getIndexTerm(self) -> list[str]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getIndexTerm() # type: ignore
     
     def getInclusion(self) -> list[str]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getInclusion() # type: ignore
     
     def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getExclusion(includeFromUpperLevels = includeFromUpperLevels) # type: ignore
     
     def getRelatedEntitiesInMaternalChapter(self) -> list[Entity]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getRelatedEntitiesInMaternalChapter() # type: ignore
     
     def getRelatedEntitiesInPerinatalChapter(self) -> list[Entity]:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getRelatedEntitiesInPerinatalChapter() # type: ignore
     
     def getBrowserUrl(self) -> str:
         if self.__real is None:
-            self.__explorer._getRealEntity(self.__id)
+            self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getBrowserUrl() # type: ignore
 
     def _setParent(self, p : Entity) -> None:
@@ -670,7 +670,7 @@ class ICDExplorer:
         relatedEntitiesInMaternalChapter = []
         if "relatedEntitiesInMaternalChapter" in data:
             for e in data["relatedEntitiesInMaternalChapter"]:
-                e_id = e.split("/mms/")[1]
+                e_id = e.split("/entity/")[1]
                 if e_id in self.__idMap:
                     relatedEntitiesInMaternalChapter.append(self.__idMap[e_id])
                 else:
@@ -680,7 +680,7 @@ class ICDExplorer:
         relatedEntitiesInPerinatalChapter = []
         if "relatedEntitiesInPerinatalChapter" in data:
             for e in data["relatedEntitiesInPerinatalChapter"]:
-                e_id = e.split("/mms/")[1]
+                e_id = e.split("/entity/")[1]
                 if e_id in self.__idMap:
                     relatedEntitiesInPerinatalChapter.append(self.__idMap[e_id])
                 else:
