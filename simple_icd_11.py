@@ -30,6 +30,8 @@ class ICDAPIClient(ABC):
     def checkRelease(self, release : str, language : str) -> bool:
         raise NotImplementedError()
 
+
+
 # Class for interrogating the official ICD API
 # Singleton for each clientId
 class ICDOfficialAPIClient(ICDAPIClient):
@@ -43,12 +45,11 @@ class ICDOfficialAPIClient(ICDAPIClient):
     def __init__(self, clientId : str, clientSecret : str):
         self.clientSecret = clientSecret #allows corrections of the secret
         # Avoid re-initializing an existing instance
-        if not hasattr(self, "clientId"):  # Check if the instance is being initialized for the first time
+        if not hasattr(self, "_clientId"):  # Check if the instance is being initialized for the first time
             self._locationUrl = "http://id.who.int/icd/release/11/"
             self._clientId = clientId
             self.__authenticate()
 
-    
     # Uses the credentials to create a new token
     def __authenticate(self):
         payload = {'client_id': self._clientId, 
@@ -143,10 +144,95 @@ class ICDOfficialAPIClient(ICDAPIClient):
             return True
         else:
             raise ConnectionError("Error happened while checking if release " + release + " exists in language " + language +". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
-    
 
+
+
+# Class for interrogating an unofficial ICD API
+# Singleton for each localUrl
 class ICDOtherAPIClient(ICDAPIClient):
-    pass
+    _instances = {}
+
+    def __new__(cls, locationUrl : str, *args, **kwargs):
+        if locationUrl not in cls._instances:
+            cls._instances[locationUrl] = super(ICDOtherAPIClient, cls).__new__(cls)
+        return cls._instances[locationUrl]
+
+    def __init__(self, locationUrl : str):
+        # Avoid re-initializing an existing instance
+        if not hasattr(self, "_locationUrl"):  # Check if the instance is being initialized for the first time
+            self._locationUrl = locationUrl + "icd/release/11/"
+
+    def lookupCode(self, code : str, release : str, language : str) -> dict:
+        uri = self._locationUrl + release + "/mms/codeinfo/" + code
+        headers = {'Authorization':  '', 
+           'Accept': 'application/json', 
+           'Accept-Language': language,
+	        'API-Version': 'v2',
+            'linearizationname': 'mms',
+            'releaseId': release,
+            'code': code}
+        r = requests.get(uri, headers=headers)
+        if r.status_code == 404:
+            raise LookupError("No ICD-11 entity with code " + code + " was found for release " + release + " in language " + language + ".")
+        elif r.status_code == 200:
+            j = json.loads(r.text)
+            return self.lookupId(j["stemId"].split("/mms/")[1], release, language)
+        else:
+            raise ConnectionError("Error happened while finding entity for code " + code + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
+    
+    def lookupId(self, id : str, release : str, language : str) -> dict:
+        uri = self._locationUrl + release + "/mms/" + id + "?include=diagnosticCriteria"
+        headers = {'Authorization':  '', 
+           'Accept': 'application/json', 
+           'Accept-Language': language,
+	        'API-Version': 'v2',
+            'linearizationname': 'mms',
+            'releaseId': release,
+            'id': id,
+            'include' : 'diagnosticCriteria'}
+        r = requests.get(uri, headers=headers)
+        if r.status_code == 404:
+            raise LookupError("No ICD-11 entity with id " + id + " was found for release " + release + " in language " + language + ".")
+        elif r.status_code == 200:
+            result = json.loads(r.text)
+            if "browserUrl" in result:
+                result["browserUrl"] = result["browserUrl"].replace("https://icd.who.int/","http://localhost/")
+            return result
+        else:
+            raise ConnectionError("Error happened while finding entity for id " + id + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
+    
+    def getLatestRelease(self, language : str) -> str:
+        uri = self._locationUrl + "mms"
+        headers = {'Authorization':  '', 
+           'Accept': 'application/json', 
+           'Accept-Language': language,
+	        'API-Version': 'v2',
+            'linearizationname': 'mms'}
+        r = requests.get(uri, headers=headers)
+        if r.status_code == 200:
+            j = json.loads(r.text)
+            return j["release"][0].split("/11/")[1].split("/")[0]
+        elif r.status_code == 404:
+            raise LookupError("Could not find any release for language " + language + ". More details: \"" + r.text + "\"")
+        else:
+            raise ConnectionError("Error happened while finding code of last release in language " + language + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
+    
+    def checkRelease(self, release : str, language : str) -> bool:
+        uri = self._locationUrl + release + "/mms"
+        headers = {'Authorization':  '', 
+           'Accept': 'application/json', 
+           'Accept-Language': language,
+	        'API-Version': 'v2',
+            'linearizationname': 'mms',
+            'releaseId': release}
+        r = requests.get(uri, headers=headers)
+        if r.status_code == 404:
+            return False
+        elif r.status_code == 200:
+            return True
+        else:
+            raise ConnectionError("Error happened while checking if release " + release + " exists in language " + language +". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
+
 
 
 # Abstract class representing an ICD-11 MMS entity
@@ -246,6 +332,7 @@ class Entity(ABC):
     @abstractmethod
     def getBrowserUrl(self) -> str:
         raise NotImplementedError()
+
 
 
 # Proxy class for entities that were found in the description of other entities, so that for now we have limited information about them
@@ -378,6 +465,7 @@ class ProxyEntity(Entity):
         self.__parent = p
 
 
+
 # Concrete class containing all the data (that we are interested in) of single ICD-11 MMS entities
 # String values for fields missing from this entity are empty strings, not None values
 class RealEntity(Entity):
@@ -504,13 +592,15 @@ class RealEntity(Entity):
         return self.__browserUrl
 
 
+
+# Main class of the library
+# Interacts with an API client to create Entity objects
 class ICDExplorer:
     def __init__(self, language : str, clientId : str, clientSecret : str, release : str | None = None, customUrl : str | None = None, useCodeRangesAsCodes : bool = False) -> None:
         if customUrl is None: #creates correct API client
             self.__clientAPI = ICDOfficialAPIClient(clientId,clientSecret)
         else:
-            #self.__clientAPI = ICDOtherAPIClient(customUrl)
-            self.__clientAPI = ICDOfficialAPIClient(clientId,clientSecret) # TODO
+            self.__clientAPI = ICDOtherAPIClient(customUrl)
         
         if release is None: #finds or sets release
             self.__release = self.__clientAPI.getLatestRelease(language)
