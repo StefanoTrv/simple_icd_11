@@ -148,7 +148,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
 
 
 # Class for interrogating an unofficial ICD API
-# Singleton for each localUrl
+# Singleton for each locationUrl
 class ICDOtherAPIClient(ICDAPIClient):
     _instances = {}
 
