@@ -163,3 +163,4 @@ cython_debug/
 
 #API Credentials
 api_credentials.txt
+sample.py
