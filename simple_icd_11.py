@@ -83,14 +83,15 @@ class ICDOfficialAPIClient(ICDAPIClient):
             raise ConnectionError("Error happened while finding entity for code " + code + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
     
     def lookupId(self, id : str, release : str, language : str) -> dict:
-        uri = self._locationUrl + release + "/mms/" + id
+        uri = self._locationUrl + release + "/mms/" + id + "?include=diagnosticCriteria"
         headers = {'Authorization':  'Bearer '+self.__token, 
            'Accept': 'application/json', 
            'Accept-Language': language,
 	        'API-Version': 'v2',
             'linearizationname': 'mms',
             'releaseId': release,
-            'id': id}
+            'id': id,
+            'include' : 'diagnosticCriteria'}
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
@@ -191,7 +192,7 @@ class Entity(ABC):
         raise NotImplementedError()
     
     @abstractmethod
-    def getBlockRange(self) -> str:
+    def getCodeRange(self) -> str:
         raise NotImplementedError()
     
     @abstractmethod
@@ -302,10 +303,10 @@ class ProxyEntity(Entity):
             self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getBlockId() # type: ignore
     
-    def getBlockRange(self) -> str:
+    def getCodeRange(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getBlockRange() # type: ignore
+        return self.__real.getCodeRange() # type: ignore
     
     def getClassKind(self) -> str:
         if self.__real is None:
@@ -380,7 +381,7 @@ class ProxyEntity(Entity):
 # Concrete class containing all the data (that we are interested in) of single ICD-11 MMS entities
 # String values for fields missing from this entity are empty strings, not None values
 class RealEntity(Entity):
-    def __init__(self, id : str, uri : str, code : str, title : str, definition : str, longDefinition : str, fullySpecifiedName : str, diagnosticCriteria : str, codingNote : str, blockId : str, blockRange : str, classKind : str, children : list[Entity], childrenElsewhere : list[Entity], parent : Entity | None, indexTerm : list[str], inclusion : list[str], exclusion : list[Entity], relatedEntitiesInMaternalChapter : list[Entity], relatedEntitiesInPerinatalChapter : list[Entity], browserUrl : str) -> None:
+    def __init__(self, id : str, uri : str, code : str, title : str, definition : str, longDefinition : str, fullySpecifiedName : str, diagnosticCriteria : str, codingNote : str, blockId : str, codeRange : str, classKind : str, children : list[Entity], childrenElsewhere : list[Entity], parent : Entity | None, indexTerm : list[str], inclusion : list[str], exclusion : list[Entity], relatedEntitiesInMaternalChapter : list[Entity], relatedEntitiesInPerinatalChapter : list[Entity], browserUrl : str) -> None:
         self.__id = id
         self.__uri = uri
         self.__code = code
@@ -391,7 +392,7 @@ class RealEntity(Entity):
         self.__diagnosticCriteria = diagnosticCriteria
         self.__codingNote = codingNote
         self.__blockId = blockId
-        self.__blockRange = blockRange
+        self.__codeRange = codeRange
         self.__classKind = classKind
         self.__children = children
         self.__childrenElsewhere = childrenElsewhere
@@ -439,8 +440,8 @@ class RealEntity(Entity):
     def getBlockId(self) -> str:
         return self.__blockId
     
-    def getBlockRange(self) -> str:
-        return self.__blockRange
+    def getCodeRange(self) -> str:
+        return self.__codeRange
     
     def getClassKind(self) -> str:
         return self.__classKind
@@ -535,6 +536,7 @@ class ICDExplorer:
                 while e is not None: # controls the ancestors until it find the code or it reaches a chapter
                     if e.getCode() == code:
                         return True
+                    e = e.getParent()
                 return False
             else:
                 return False
@@ -568,6 +570,7 @@ class ICDExplorer:
                 while e is not None: # controls the ancestors until it find the code or it reaches a chapter
                     if e.getCode() == code:
                         return e
+                    e = e.getParent()
             raise LookupError("Code range \""+code+"\" was not found for release \""+self.__release+"\" in language \""+self.__language+"\".")
         dict = self.__clientAPI.lookupCode(code,self.__release,self.__language)
         return self.__createAndAddNewEntity(dict)
@@ -614,9 +617,9 @@ class ICDExplorer:
         blockId = ""
         if "blockId" in data:
             blockId = data["blockId"]
-        blockRange = ""
-        if "blockRange" in data:
-            blockRange = data["blockRange"]
+        codeRange = ""
+        if "codeRange" in data:
+            codeRange = data["codeRange"]
         classKind = data["classKind"]
         children : list[Entity] = []
         newChildren : list[ProxyEntity] = []
@@ -626,18 +629,18 @@ class ICDExplorer:
                 if c_id in self.__idMap:
                     children.append(self.__idMap[c_id])
                 else:
-                    new_e = ProxyEntity(self,c_id,data["child"])
+                    new_e = ProxyEntity(self,c_id,c)
                     newChildren.append(new_e) # their parent will be updated later
                     children.append(new_e)
                     self.__idMap[new_e.getId()]=new_e
         childrenElsewhere : list[Entity] = []
         if "foundationChildElsewhere" in data:
-            for c in data["child"]:
+            for c in data["foundationChildElsewhere"]:
                 c_id = c["linearizationReference"].split("/mms/")[1]
                 if c_id in self.__idMap:
                     childrenElsewhere.append(self.__idMap[c_id])
                 else:
-                    new_e = ProxyEntity(self,c_id,data["child"])
+                    new_e = ProxyEntity(self,c_id,c)
                     childrenElsewhere.append(new_e)
                     self.__idMap[new_e.getId()]=new_e
         if classKind == "chapter":
@@ -689,7 +692,10 @@ class ICDExplorer:
                     self.__idMap[new_e.getId()]=new_e
         browserUrl = data["browserUrl"]
 
-        new_e = RealEntity(id,uri,code,title,definition,longDefinition,fullySpecifiedName,diagnosticCriteria,codingNote,blockId,blockRange,classKind,children,childrenElsewhere,parent,indexTerm,inclusion,exclusion,relatedEntitiesInMaternalChapter,relatedEntitiesInPerinatalChapter,browserUrl)
+        if self.__useCodeRangesAsCodes and classKind == "block":
+            code = codeRange
+
+        new_e = RealEntity(id,uri,code,title,definition,longDefinition,fullySpecifiedName,diagnosticCriteria,codingNote,blockId,codeRange,classKind,children,childrenElsewhere,parent,indexTerm,inclusion,exclusion,relatedEntitiesInMaternalChapter,relatedEntitiesInPerinatalChapter,browserUrl)
         self.__idMap[id]=new_e
         if code !="":
             self.__codeToIdMap[code]=id
