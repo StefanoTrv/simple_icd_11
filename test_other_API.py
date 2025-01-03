@@ -9,6 +9,10 @@ class TestICDOtherAPIClient(unittest.TestCase):
     def setUpClass(cls):
         cls.client = ICDOtherAPIClient(url)
     
+    def testWrongUrl(self):
+        with self.assertRaises(ConnectionError):
+            ICDOtherAPIClient("website.invalid")
+    
     def testLookupCodeOk(self):
         json_dict = self.client.lookupCode("1F0Y","2024-01","en")
         self.assertEqual(json_dict["code"],"1F0Y")

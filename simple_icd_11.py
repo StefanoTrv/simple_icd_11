@@ -161,6 +161,13 @@ class ICDOtherAPIClient(ICDAPIClient):
         # Avoid re-initializing an existing instance
         if not hasattr(self, "_locationUrl"):  # Check if the instance is being initialized for the first time
             self._locationUrl = locationUrl + "icd/release/11/"
+            #checks if destination url is responsive
+            try:
+                r = requests.head(locationUrl + "icd/entity")
+                if r.status_code != 405:
+                    raise ConnectionError("Error happened while trying to connect with url \"" + self._locationUrl +"\". Error code " + str(r.status_code) + " - details:\n\"" + r.text + "\"")
+            except Exception as e:
+                raise ConnectionError("Error happened while trying to connect with url \"" + self._locationUrl +"\" - details:\n\"" + str(e) + "\"")
 
     def lookupCode(self, code : str, release : str, language : str) -> dict:
         uri = self._locationUrl + release + "/mms/codeinfo/" + code
