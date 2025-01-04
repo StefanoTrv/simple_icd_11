@@ -1,3 +1,7 @@
+# simple_icd_11 is released under the MIT License
+# Copyright (c) 2024 Stefano Travasci
+# Read the full LICENCES at https://github.com/StefanoTrv/simple_icd_11/blob/master/LICENSE
+
 from __future__ import annotations
 import requests, json
 from abc import ABC, abstractmethod
