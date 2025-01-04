@@ -33,7 +33,7 @@ A simple python library for ICD-11 MMS codes
   * [getChildren(includeChildrenElsewhere : bool = False) -> list[Entity]](#getchildrenincludechildrenelsewhere--bool--false---listentity)
   * [getChildrenElsewhere() -> list[Entity]](#getchildrenelsewhere---listentity)
   * [getDescendants(includeChildrenElsewhere : bool = False) -> list[Entity]](#getdescendantsincludechildrenelsewhere--bool--false---listentity)
-  * [getParent() -> Entity | None](#getparent---entity--none)
+  * [getParent() -> Entity \| None](#getparent---entity--none)
   * [getAncestors() -> list[Entity]](#getancestors---listentity)
   * [getIndexTerm() -> list[str]](#getindexterm---liststr)
   * [getInclusion() -> list[str]](#getinclusion---liststr)
