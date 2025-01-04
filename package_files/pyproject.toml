@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simple_icd_11"
+version = "1.0.0"
+authors = [
+  { name="Stefano Travasci", email="stefanotravasci@gmail.com" },
+]
+description = "A simple python library for ICD-11 MMS codes"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests"
+]
+keywords = ["icd","icd 11", "icd-11", "icd-11-MMS", "icd-11 MMS", "icd 11 MMS", "icd11", "Mortality and Morbidity Statistics", "Health informatics", "International Classification of Diseases"]
+
+[project.urls]
+Homepage = "https://simpleicd11.stefanotravasci.it"
+repository = "https://github.com/StefanoTrv/simple_icd_11"
+documentation = "https://simpleicd11.stefanotravasci.it"
+Issues = "https://github.com/StefanoTrv/simple_icd_11/issues"
+forum = "https://github.com/StefanoTrv/simple_icd_11/discussions"
+donate = "https://github.com/StefanoTrv/simple_icd_11?tab=readme-ov-file#conclusion"
