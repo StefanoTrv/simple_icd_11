@@ -1,0 +1,83 @@
+Id,Name,Shape Library,Page ID,Contained By,Group,Line Source,Line Destination,Source Arrow,Destination Arrow,Status,Text Area 1,Text Area 2,Text Area 3,Comments
+1,Document,,,,,,,,,Draft,simple_icd_11,,,
+2,Page,,,,,,,,,,Page 1,,,
+3,Rectangle,Geometric Shapes,2,,,,,,,,,,,
+4,Rectangle,Geometric Shapes,2,,,,,,,,,,,
+5,DividerBlock,,2,,,,,,,,,,,
+6,DividerBlock,,2,,,,,,,,,,,
+7,Class,UML,2,,,,,,,,ICDExplorer,"​- useCodeRangesAsCodes
+- language
+- release
+- clientAPI
+- idMap
+- codeToIdMap","​+ isValidCode(code : string)
++ isValidId(id : string)
++ getEntityFromCode(code : string)
++ getEntityFromId(id : string)
++ getLanguage()
++ getRelease()
+~ getRealEntity(id : string)",
+8,Class,UML,2,,,,,,,,ICDAPIClient {abstract},# locationUrl,"​+ lookupCode()
++ lookupId()
++ getLatestRelease()
++ checkRelease()",
+9,Class,UML,2,,,,,,,,ICDOfficialAPIClient,"​- clientId
+- clientSecret
+- token",​- authenticate(),
+10,Class,UML,2,,,,,,,,ICDOtherAPIClient,,,
+11,Class,UML,2,,,,,,,,"<<interface>>
+Entity","​+ getId()
++ getURI()
++ getCode()
++ getTitle()
++ getDefinition()
++ getLongDefinition()
++ getFullySpecifiedName()
++ getDiagnosticCriteria()
++ getCodingNote(includeFromUpperLevels)
++ getBlockId()
++ getCodeRange()
++ getClassKind()
++ isResidual()
++ getChildren(includeChildrenElsewhere)
++ getChildrenElsewhere()
++ getDescendants(includeChildrenElsewhere)
++ getParent()
++ getAncestors()
++ getIndexTerm()
++ getInclusion()
++ getExclusion(includeFromUpperLevels)
++ getRelatedEntitiesInMaternalChapter()
++ getRelatedEntitiesInPerinatalChapter()
++ getBrowserUrl()",,
+12,Class,UML,2,,,,,,,,RealEntity,"​- id
+- uri
+- code
+- title
+- ...",,
+13,Class,UML,2,,,,,,,,ProxyEntity,"​- real : Entity [0..1]
+- explorer : ICDExplorer
+- id
+- uri
+- parent : Entity [0..1]",~ setParent(p : Entity),
+14,DividerBlock,,2,,,,,,,,,,,
+15,DividerBlock,,2,,,,,,,,,,,
+16,Isosceles triangle,Geometric Shapes,2,,,,,,,,,,,
+17,Text,Standard,2,,,,,,,,​- real,,,
+18,DividerBlock,,2,,,,,,,,,,,
+19,DividerBlock,,2,,,,,,,,,,,
+20,DividerBlock,,2,,,,,,,,,,,
+21,Note,UML,2,,,,,,,,Singleton: one for each clientId,,,
+22,Note,UML,2,,,,,,,,Singleton: one for each locationUrl,,,
+23,Note,UML,2,,,,,,,,Strategy Pattern,,,
+24,Note,UML,2,,,,,,,,Proxy Pattern,,,
+25,Isosceles triangle,Geometric Shapes,2,,,,,,,,,,,
+26,Line,,2,,,13,12,None,Arrow,,,,,
+27,Line,,2,,,13,11,None,Arrow,,,,,
+28,Line,,2,,,12,11,None,Arrow,,,,,
+29,Line,,2,,,11,7,None,Composition,,,,,
+30,Line,,2,,,21,9,None,None,,,,,
+31,Line,,2,,,22,10,None,None,,,,,
+32,Line,,2,,,4,23,None,None,,,,,
+33,Line,,2,,,24,3,None,None,,,,,
+34,Line,,2,,,7,8,None,Arrow,,,,,
