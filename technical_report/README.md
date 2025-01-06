@@ -16,3 +16,5 @@ For the maximum flexibility of use for all kinds of users, it was decided to kee
 The only classes exported by the package, and thus visible to the user, are `ICDExplorer` and `Entity`.
 
 The package has a single external dependency: the `requests` library.
+
+The file `test_simple_icd_11.py` contains unit tests for the whole library, using the official API. The file `test_other_API.py` contains a reduced set of unit tests for testing connections with other API deployments.
