@@ -102,6 +102,7 @@ The constructor for an `ICDExplorer` object has three required arguments and thr
 * **language : str** the language code representing the language you want the API to answer in. The code for English is `en`.
 * **clientId : str** the client ID for accessing the official API. It can be an empty string if using another deployment of the API. See [Setup](#setup) for more details.
 * **clientSecret : str** the client secret for accessing the official API. It can be an empty string if using another deployment of the API. See [Setup](#setup) for more details.
+
 The optional arguments are the following:
 * **release : str | None = None** the ICD-11 MMS release you want to use. By default, it uses the latest release made available by the API.
 * **customUrl : str | None = None** the URL of the non-official deployment of the API. By default it's `None`: if left `None`, it will use the official API. See [Setup](#setup) for more details.
