@@ -49,7 +49,10 @@ Entity","​+ getId()
 + getExclusion(includeFromUpperLevels)
 + getRelatedEntitiesInMaternalChapter()
 + getRelatedEntitiesInPerinatalChapter()
-+ getBrowserUrl()",,
++ getBrowserUrl()
+# appendDescendants(includeChildrenElsewhere, lst)
+# appendAncestors(lst)
+# appendExclusion(lst)",,
 12,Class,UML,2,,,,,,,,RealEntity,"​- id
 - uri
 - code

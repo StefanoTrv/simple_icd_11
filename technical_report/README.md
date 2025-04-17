@@ -9,7 +9,8 @@ Both `ICDOfficialAPIClient` and `ICDOtherAPIClient` implement modified versions 
 
 To represent ICD-11 entities, a **proxy pattern** was used. This allows the user to access seamlessly the parent and the children of any entity, without having to look them up in the API at the moment of the entity's creation. When an entity is first created, each entity related to it (parent and children) that has not already been created is created as a `ProxyEntity` and added to the map of the explorer. When a field the proxy entity doesn't have is accessed, a `RealEntity` is created, if it doesn't already exist, and then accessed. `ProxyEntity` objects may be replaced by their `RealEntity` in some of the data structures where they were stored: the user is warned not to use the `is` operator to compare `Entity` objects, since one of them could be a `ProxyEntity` and the other could be the `RealEntity` for the same code.  
 The `Entity` interface is implemented as an abstract class, since Python does not support interfaces. A possibility could have been to use a third party package to implement interfaces, but it would have meant adding an external dependency for little to no advantage.  
-The "package-private" method `_setParent()` is used to set the parent of the `ProxyEntity` after the parent itself has been created.
+The "package-private" method `_setParent()` is used to set the parent of the `ProxyEntity` after the parent itself has been created.  
+The "protected" methods of `Entity` are used to improve the performance of certain methods.
 
 For the maximum flexibility of use for all kinds of users, it was decided to keep all the code in a single file. The code is small enough to be manageable even if contained within a single file.
 

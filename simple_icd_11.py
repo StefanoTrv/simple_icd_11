@@ -347,6 +347,18 @@ class Entity(ABC):
     @abstractmethod
     def getBrowserUrl(self) -> str:
         raise NotImplementedError()
+    
+    @abstractmethod
+    def _appendDescendants(self, includeChildrenElsewhere : bool, lst : list[Entity]) -> None:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def _appendAncestors(self, lst : list[Entity]) -> None:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def _appendExclusion(self, lst : list[Entity]) -> None: # includeFromUpperLevels is omitted from the parameters: it must be true!
+        raise NotImplementedError()
 
 
 
@@ -478,7 +490,21 @@ class ProxyEntity(Entity):
 
     def _setParent(self, p : Entity) -> None:
         self.__parent = p
+        
+    def _appendDescendants(self, includeChildrenElsewhere : bool, lst : list[Entity]) -> None:
+        if self.__real is None:
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        self.__real._appendDescendants(includeChildrenElsewhere, lst) # type: ignore
+    
+    def _appendAncestors(self, lst : list[Entity]) -> None:
+        if self.__real is None:
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        self.__real._appendAncestors(lst) # type: ignore
 
+    def _appendExclusion(self, lst : list[Entity]) -> None:
+        if self.__real is None:
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        self.__real._appendExclusion(lst) # type: ignore
 
 
 # Concrete class containing all the data (that we are interested in) of single ICD-11 MMS entities
@@ -533,7 +559,7 @@ class RealEntity(Entity):
     
     def getCodingNote(self, includeFromUpperLevels : bool = False) -> str: #implementation could be made more efficient
         if includeFromUpperLevels and self.__parent is not None:
-            if self.__codingNote == "": #avoids merging with empty lists
+            if self.__codingNote == "": #avoids merging with empty strings
                 return self.__parent.getCodingNote(includeFromUpperLevels=True)
             else:
                 return self.__parent.getCodingNote(includeFromUpperLevels=True) + "\n" + self.__codingNote
@@ -562,25 +588,17 @@ class RealEntity(Entity):
         return self.__childrenElsewhere.copy()
     
     def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]: #implementation could be made more efficient
-        l = []
-        for child in self.__children:
-            l.append(child)
-            l += child.getDescendants(includeChildrenElsewhere=includeChildrenElsewhere)
-        if not includeChildrenElsewhere:
-            return l
-        for child in self.__childrenElsewhere:
-            l.append(child)
-            l += child.getDescendants(includeChildrenElsewhere=True)
-        return l
+        lst : list[Entity] = []
+        self._appendDescendants(includeChildrenElsewhere,lst)
+        return lst
     
     def getParent(self) -> Entity | None:
         return self.__parent
     
     def getAncestors(self) -> list[Entity]: #implementation could be made more efficient
-        if self.__parent is None:
-            return []
-        else:
-            return [self.__parent] + self.__parent.getAncestors()
+        lst : list[Entity] = []
+        self._appendAncestors(lst)
+        return lst
     
     def getIndexTerm(self) -> list[str]:
         return self.__indexTerm.copy()
@@ -589,13 +607,10 @@ class RealEntity(Entity):
         return self.__inclusion.copy()
     
     def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]: #implementation could be made more efficient
+        lst : list[Entity] = self.__exclusion.copy()
         if includeFromUpperLevels and self.__parent is not None:
-            if self.__exclusion == []: #avoids merging with empty lists
-                return self.__parent.getExclusion(includeFromUpperLevels=True)
-            else:
-                return self.__exclusion.copy() + self.__parent.getExclusion(includeFromUpperLevels=True)
-        else:
-            return self.__exclusion.copy()
+            self.__parent._appendExclusion(lst)
+        return lst
     
     def getRelatedEntitiesInMaternalChapter(self) -> list[Entity]:
         return self.__relatedEntitiesInMaternalChapter.copy()
@@ -605,6 +620,27 @@ class RealEntity(Entity):
     
     def getBrowserUrl(self) -> str:
         return self.__browserUrl
+    
+    def _appendDescendants(self, includeChildrenElsewhere : bool, lst : list[Entity]) -> None:
+        for child in self.__children:
+            lst.append(child)
+            child._appendDescendants(includeChildrenElsewhere,lst)
+        if not includeChildrenElsewhere:
+            return
+        for child in self.__childrenElsewhere:
+            lst.append(child)
+            child._appendDescendants(True,lst)
+    
+    def _appendAncestors(self, lst : list[Entity]) -> None:
+        if self.__parent is not None:
+            lst.append(self.__parent)
+            self.__parent._appendAncestors(lst)
+
+    def _appendExclusion(self, lst : list[Entity]) -> None:
+        for ex in self.__exclusion:
+            lst.append(ex)
+        if self.__parent is not None:
+            self.__parent._appendExclusion(lst)
 
 
 
