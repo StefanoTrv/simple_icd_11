@@ -1,4 +1,4 @@
-import unittest, time
+import unittest
 from simple_icd_11 import ICDOfficialAPIClient, ICDExplorer, ProxyEntity, RealEntity
 
 class TestICDOfficialAPIClient(unittest.TestCase):
@@ -74,6 +74,14 @@ class TestICDOfficialAPIClient(unittest.TestCase):
     def testNoDuplicateInstances(self):
         t = ICDOfficialAPIClient(self.clientId,self.clientSecret)
         self.assertTrue(self.client is t)
+    
+    def testWrongClientSecretDoesNotBreakExisting(self):
+        self.assertRaises(ConnectionError, lambda: ICDOfficialAPIClient(self.clientId,"rabarbaro"))
+        self.compromiseToken()
+        try:
+            self.client.checkRelease("2024-01","en")
+        except Exception as e:
+            self.fail("Unexpected exception raised by checkRelease(): " + repr(e))
 
 
 

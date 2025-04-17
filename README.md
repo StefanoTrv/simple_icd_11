@@ -107,7 +107,8 @@ The optional arguments are the following:
 * **release : str | None = None** the ICD-11 MMS release you want to use. By default, it uses the latest release made available by the API.
 * **customUrl : str | None = None** the URL of the non-official deployment of the API. By default it's `None`: if left `None`, it will use the official API. See [Setup](#setup) for more details.
 * **useCodeRangesAsCodes : bool = False** whether the code ranges of blocks will be used as their codes or not. By default, only the official codes are used. See [Block codes](#block-codes) for more details.
-You can create as many explorers as you want, using the same or different deployment and the same or different credentials. The only limitation is that trying to create a new explorer with a wrong client secret will compromise all the other explorers that had the same client ID.
+
+You can create as many explorers as you want, using the same or different deployments and the same or different credentials.
 The constructor will raise a `ConnectionError` if an error happens while trying to establish a connection, and a `LookupError` if it can't find the specified version and language combination.
 
 All the following methods will throw a `ConnectionError` if an error happens while trying to communicate with the API.

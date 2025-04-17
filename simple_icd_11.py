@@ -3,6 +3,7 @@
 # Read the full LICENCES at https://github.com/StefanoTrv/simple_icd_11/blob/master/LICENSE
 
 from __future__ import annotations
+from typing import Dict
 import requests, json
 from abc import ABC, abstractmethod
 
@@ -39,25 +40,27 @@ class ICDAPIClient(ABC):
 # Class for interrogating the official ICD API
 # Singleton for each clientId
 class ICDOfficialAPIClient(ICDAPIClient):
-    _instances = {}
+    _instances : Dict[str,ICDOfficialAPIClient] = {}
 
-    def __new__(cls, clientId : str, *args, **kwargs):
+    def __new__(cls, clientId : str, clientSecret : str):
         if clientId not in cls._instances:
             cls._instances[clientId] = super(ICDOfficialAPIClient, cls).__new__(cls)
+        elif cls._instances[clientId]._clientSecret != clientSecret: # Raises error if clientSecret is wrong
+            raise ConnectionError("Provided clientSecret is not consistent with previously provided correct secret.")
         return cls._instances[clientId]
 
     def __init__(self, clientId : str, clientSecret : str):
-        self.clientSecret = clientSecret #allows corrections of the secret
         # Avoid re-initializing an existing instance
         if not hasattr(self, "_clientId"):  # Check if the instance is being initialized for the first time
             self._locationUrl = "http://id.who.int/icd/release/11/"
             self._clientId = clientId
+            self._clientSecret = clientSecret
             self.__authenticate()
 
     # Uses the credentials to create a new token
     def __authenticate(self):
         payload = {'client_id': self._clientId, 
-	   	   'client_secret': self.clientSecret, 
+	   	   'client_secret': self._clientSecret, 
            'scope': 'icdapi_access', 
            'grant_type': 'client_credentials'}
         r = requests.post("https://icdaccessmanagement.who.int/connect/token", data=payload).json()
