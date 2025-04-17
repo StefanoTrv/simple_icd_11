@@ -51,7 +51,7 @@ class TestICDOfficialAPIClient(unittest.TestCase):
         self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/218513628")
 
     def testGetLatestReleaseOk(self): #needs to be updated when new release comes out
-        self.assertEqual(self.client.getLatestRelease("en"),"2024-01")
+        self.assertEqual(self.client.getLatestRelease("en"),"2025-01")
     
     def testGetLatestReleaseWrongLanguage(self):
         with self.assertRaises(LookupError):
@@ -59,7 +59,7 @@ class TestICDOfficialAPIClient(unittest.TestCase):
     
     def testGetLatestReleaseOldToken(self): #needs to be updated when new release comes out
         self.compromiseToken()
-        self.assertEqual(self.client.getLatestRelease("en"),"2024-01")
+        self.assertEqual(self.client.getLatestRelease("en"),"2025-01")
     
     def testCheckReleaseTrue(self):
         self.assertTrue(self.client.checkRelease("2024-01","en"))
