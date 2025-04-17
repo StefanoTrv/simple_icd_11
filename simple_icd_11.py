@@ -1,5 +1,5 @@
 # simple_icd_11 is released under the MIT License
-# Copyright (c) 2024 Stefano Travasci
+# Copyright (c) 2024-2025 Stefano Travasci
 # Read the full LICENCES at https://github.com/StefanoTrv/simple_icd_11/blob/master/LICENSE
 
 from __future__ import annotations
@@ -691,6 +691,8 @@ class ICDExplorer:
         return self.__release
 
     def _getRealEntity(self, id : str) -> Entity:
+        if id in self.__idMap and isinstance(self.__idMap[id],RealEntity):
+            return self.__idMap[id]
         return self.__createAndAddNewEntity(self.__clientAPI.lookupId(id,self.__release,self.__language))
     
     # Creates a new entity from its data and updates both dictionaries

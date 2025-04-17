@@ -1,5 +1,5 @@
 import unittest, time
-from simple_icd_11 import ICDOfficialAPIClient, ICDExplorer, ProxyEntity
+from simple_icd_11 import ICDOfficialAPIClient, ICDExplorer, ProxyEntity, RealEntity
 
 class TestICDOfficialAPIClient(unittest.TestCase):
     @classmethod
@@ -336,3 +336,14 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertEqual(e.getBrowserUrl(),"https://icd.who.int/browse/2024-01/mms/en#231358748")
         e = self.explorer.getEntityFromId("2091156678")
         self.assertEqual(e.getBrowserUrl(),"https://icd.who.int/browse/2024-01/mms/en#2091156678")
+
+    def testGetRealEntityNoDuplicateRequests(self):
+        explorer = ICDExplorer("en",self.clientId,self.clientSecret,release="2024-01")
+        explorer.getEntityFromId("1345814274")
+        proxy_entity = explorer.getEntityFromId("377572273")
+        self.assertIsInstance(proxy_entity,ProxyEntity)
+        entity1 = explorer._getRealEntity("377572273")
+        self.assertIsInstance(entity1,RealEntity)
+        entity2 = explorer._getRealEntity("377572273")
+        self.assertIsInstance(entity2,RealEntity)
+        self.assertEqual(id(entity1),id(entity2))
