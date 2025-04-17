@@ -1,8 +1,9 @@
 # simple_icd_11 is released under the MIT License
-# Copyright (c) 2024 Stefano Travasci
+# Copyright (c) 2024-2025 Stefano Travasci
 # Read the full LICENCES at https://github.com/StefanoTrv/simple_icd_11/blob/master/LICENSE
 
 from __future__ import annotations
+from typing import Dict
 import requests, json
 from abc import ABC, abstractmethod
 
@@ -39,25 +40,28 @@ class ICDAPIClient(ABC):
 # Class for interrogating the official ICD API
 # Singleton for each clientId
 class ICDOfficialAPIClient(ICDAPIClient):
-    _instances = {}
+    _instances : Dict[str,ICDOfficialAPIClient] = {}
 
-    def __new__(cls, clientId : str, *args, **kwargs):
+    def __new__(cls, clientId : str, clientSecret : str):
         if clientId not in cls._instances:
-            cls._instances[clientId] = super(ICDOfficialAPIClient, cls).__new__(cls)
+            return super(ICDOfficialAPIClient, cls).__new__(cls)
+        elif cls._instances[clientId]._clientSecret != clientSecret: # Raises error if clientSecret is wrong
+            raise ConnectionError("Provided clientSecret is not consistent with previously provided correct secret.")
         return cls._instances[clientId]
 
     def __init__(self, clientId : str, clientSecret : str):
-        self.clientSecret = clientSecret #allows corrections of the secret
         # Avoid re-initializing an existing instance
         if not hasattr(self, "_clientId"):  # Check if the instance is being initialized for the first time
             self._locationUrl = "http://id.who.int/icd/release/11/"
             self._clientId = clientId
+            self._clientSecret = clientSecret
             self.__authenticate()
+            type(self)._instances[clientId] = self # Adds only authenticated Clients to map
 
     # Uses the credentials to create a new token
     def __authenticate(self):
         payload = {'client_id': self._clientId, 
-	   	   'client_secret': self.clientSecret, 
+	   	   'client_secret': self._clientSecret, 
            'scope': 'icdapi_access', 
            'grant_type': 'client_credentials'}
         r = requests.post("https://icdaccessmanagement.who.int/connect/token", data=payload).json()
@@ -343,6 +347,18 @@ class Entity(ABC):
     @abstractmethod
     def getBrowserUrl(self) -> str:
         raise NotImplementedError()
+    
+    @abstractmethod
+    def _appendDescendants(self, includeChildrenElsewhere : bool, lst : list[Entity]) -> None:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def _appendAncestors(self, lst : list[Entity]) -> None:
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def _appendExclusion(self, lst : list[Entity]) -> None: # includeFromUpperLevels is omitted from the parameters: it must be true!
+        raise NotImplementedError()
 
 
 
@@ -474,7 +490,21 @@ class ProxyEntity(Entity):
 
     def _setParent(self, p : Entity) -> None:
         self.__parent = p
+        
+    def _appendDescendants(self, includeChildrenElsewhere : bool, lst : list[Entity]) -> None:
+        if self.__real is None:
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        self.__real._appendDescendants(includeChildrenElsewhere, lst) # type: ignore
+    
+    def _appendAncestors(self, lst : list[Entity]) -> None:
+        if self.__real is None:
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        self.__real._appendAncestors(lst) # type: ignore
 
+    def _appendExclusion(self, lst : list[Entity]) -> None:
+        if self.__real is None:
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        self.__real._appendExclusion(lst) # type: ignore
 
 
 # Concrete class containing all the data (that we are interested in) of single ICD-11 MMS entities
@@ -529,7 +559,7 @@ class RealEntity(Entity):
     
     def getCodingNote(self, includeFromUpperLevels : bool = False) -> str: #implementation could be made more efficient
         if includeFromUpperLevels and self.__parent is not None:
-            if self.__codingNote == "": #avoids merging with empty lists
+            if self.__codingNote == "": #avoids merging with empty strings
                 return self.__parent.getCodingNote(includeFromUpperLevels=True)
             else:
                 return self.__parent.getCodingNote(includeFromUpperLevels=True) + "\n" + self.__codingNote
@@ -557,26 +587,18 @@ class RealEntity(Entity):
     def getChildrenElsewhere(self) -> list[Entity]:
         return self.__childrenElsewhere.copy()
     
-    def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]: #implementation could be made more efficient
-        l = []
-        for child in self.__children:
-            l.append(child)
-            l += child.getDescendants(includeChildrenElsewhere=includeChildrenElsewhere)
-        if not includeChildrenElsewhere:
-            return l
-        for child in self.__childrenElsewhere:
-            l.append(child)
-            l += child.getDescendants(includeChildrenElsewhere=True)
-        return l
+    def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
+        lst : list[Entity] = []
+        self._appendDescendants(includeChildrenElsewhere,lst)
+        return lst
     
     def getParent(self) -> Entity | None:
         return self.__parent
     
-    def getAncestors(self) -> list[Entity]: #implementation could be made more efficient
-        if self.__parent is None:
-            return []
-        else:
-            return [self.__parent] + self.__parent.getAncestors()
+    def getAncestors(self) -> list[Entity]:
+        lst : list[Entity] = []
+        self._appendAncestors(lst)
+        return lst
     
     def getIndexTerm(self) -> list[str]:
         return self.__indexTerm.copy()
@@ -584,14 +606,11 @@ class RealEntity(Entity):
     def getInclusion(self) -> list[str]:
         return self.__inclusion.copy()
     
-    def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]: #implementation could be made more efficient
+    def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]:
+        lst : list[Entity] = self.__exclusion.copy()
         if includeFromUpperLevels and self.__parent is not None:
-            if self.__exclusion == []: #avoids merging with empty lists
-                return self.__parent.getExclusion(includeFromUpperLevels=True)
-            else:
-                return self.__exclusion.copy() + self.__parent.getExclusion(includeFromUpperLevels=True)
-        else:
-            return self.__exclusion.copy()
+            self.__parent._appendExclusion(lst)
+        return lst
     
     def getRelatedEntitiesInMaternalChapter(self) -> list[Entity]:
         return self.__relatedEntitiesInMaternalChapter.copy()
@@ -601,6 +620,27 @@ class RealEntity(Entity):
     
     def getBrowserUrl(self) -> str:
         return self.__browserUrl
+    
+    def _appendDescendants(self, includeChildrenElsewhere : bool, lst : list[Entity]) -> None:
+        for child in self.__children:
+            lst.append(child)
+            child._appendDescendants(includeChildrenElsewhere,lst)
+        if not includeChildrenElsewhere:
+            return
+        for child in self.__childrenElsewhere:
+            lst.append(child)
+            child._appendDescendants(True,lst)
+    
+    def _appendAncestors(self, lst : list[Entity]) -> None:
+        if self.__parent is not None:
+            lst.append(self.__parent)
+            self.__parent._appendAncestors(lst)
+
+    def _appendExclusion(self, lst : list[Entity]) -> None:
+        for ex in self.__exclusion:
+            lst.append(ex)
+        if self.__parent is not None:
+            self.__parent._appendExclusion(lst)
 
 
 
@@ -691,6 +731,8 @@ class ICDExplorer:
         return self.__release
 
     def _getRealEntity(self, id : str) -> Entity:
+        if id in self.__idMap and isinstance(self.__idMap[id],RealEntity):
+            return self.__idMap[id]
         return self.__createAndAddNewEntity(self.__clientAPI.lookupId(id,self.__release,self.__language))
     
     # Creates a new entity from its data and updates both dictionaries

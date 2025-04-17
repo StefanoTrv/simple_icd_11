@@ -587,7 +587,7 @@ class RealEntity(Entity):
     def getChildrenElsewhere(self) -> list[Entity]:
         return self.__childrenElsewhere.copy()
     
-    def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]: #implementation could be made more efficient
+    def getDescendants(self, includeChildrenElsewhere : bool = False) -> list[Entity]:
         lst : list[Entity] = []
         self._appendDescendants(includeChildrenElsewhere,lst)
         return lst
@@ -595,7 +595,7 @@ class RealEntity(Entity):
     def getParent(self) -> Entity | None:
         return self.__parent
     
-    def getAncestors(self) -> list[Entity]: #implementation could be made more efficient
+    def getAncestors(self) -> list[Entity]:
         lst : list[Entity] = []
         self._appendAncestors(lst)
         return lst
@@ -606,7 +606,7 @@ class RealEntity(Entity):
     def getInclusion(self) -> list[str]:
         return self.__inclusion.copy()
     
-    def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]: #implementation could be made more efficient
+    def getExclusion(self, includeFromUpperLevels : bool = True) -> list[Entity]:
         lst : list[Entity] = self.__exclusion.copy()
         if includeFromUpperLevels and self.__parent is not None:
             self.__parent._appendExclusion(lst)

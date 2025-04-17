@@ -42,7 +42,8 @@ A simple python library for ICD-11 MMS codes
 * [Conclusion](#conclusion)
 
 ## Release notes
-* **1.0.0:** initial release
+* **1.1.0:** Removed the useless and dangerous ability to modify a correct clientSecret (useless because the official API does not allow to change the clientSecret of a given clientId). Under some very specific circumstances, an "ICDExplorer" could have sent to the API two requests for the same code: this has now been fixed. Improved the performance of three methods of "Entity".
+* **1.0.0:** Initial release
 
 ## Introduction
 This library aims to offer an easier way to work with codes and entities from **ICD-11 MMS**, that is the Mortality and Morbidity Statistics linearization of ICD-11. For simplicity's sake, from now on I'll refer to this linearization as simply ICD-11. It allows users to connect to the official WHO API for ICD-11 or to unofficial deployments of the API, choose the preferred available language and release (or just use the latest release), check if a code exists and see most of the data associated with it, including its ancestors and descendants in the classification.  

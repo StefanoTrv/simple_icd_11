@@ -42,7 +42,8 @@ A simple python library for ICD-11 MMS codes
 * [Conclusion](#conclusion)
 
 ## Release notes
-* **1.0.0:** initial release
+* **1.1.0:** Removed the useless and dangerous ability to modify a correct clientSecret (useless because the official API does not allow to change the clientSecret of a given clientId). Under some very specific circumstances, an "ICDExplorer" could have sent to the API two requests for the same code: this has now been fixed. Improved the performance of three methods of "Entity".
+* **1.0.0:** Initial release
 
 ## Introduction
 This library aims to offer an easier way to work with codes and entities from **ICD-11 MMS**, that is the Mortality and Morbidity Statistics linearization of ICD-11. For simplicity's sake, from now on I'll refer to this linearization as simply ICD-11. It allows users to connect to the official WHO API for ICD-11 or to unofficial deployments of the API, choose the preferred available language and release (or just use the latest release), check if a code exists and see most of the data associated with it, including its ancestors and descendants in the classification.  
@@ -102,11 +103,13 @@ The constructor for an `ICDExplorer` object has three required arguments and thr
 * **language : str** the language code representing the language you want the API to answer in. The code for English is `en`.
 * **clientId : str** the client ID for accessing the official API. It can be an empty string if using another deployment of the API. See [Setup](#setup) for more details.
 * **clientSecret : str** the client secret for accessing the official API. It can be an empty string if using another deployment of the API. See [Setup](#setup) for more details.
+
 The optional arguments are the following:
 * **release : str | None = None** the ICD-11 MMS release you want to use. By default, it uses the latest release made available by the API.
 * **customUrl : str | None = None** the URL of the non-official deployment of the API. By default it's `None`: if left `None`, it will use the official API. See [Setup](#setup) for more details.
-* **useCodeRangesAsCodes : bool = False** whether the code ranges of blocks will be used as their codes or not. By default, only the official codes are used. See [Block codes](#block_codes) for more details.
-You can create as many explorers as you want, using the same or different deployment and the same or different credentials. The only limitation is that trying to create a new explorer with a wrong client secret will compromise all the other explorers that had the same client ID.
+* **useCodeRangesAsCodes : bool = False** whether the code ranges of blocks will be used as their codes or not. By default, only the official codes are used. See [Block codes](#block-codes) for more details.
+
+You can create as many explorers as you want, using the same or different deployments and the same or different credentials.
 The constructor will raise a `ConnectionError` if an error happens while trying to establish a connection, and a `LookupError` if it can't find the specified version and language combination.
 
 All the following methods will throw a `ConnectionError` if an error happens while trying to communicate with the API.
