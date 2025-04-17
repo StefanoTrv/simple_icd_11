@@ -72,8 +72,9 @@ class TestICDOfficialAPIClient(unittest.TestCase):
         self.assertTrue(self.client.checkRelease("2024-01","en"))
 
     def testNoDuplicateInstances(self):
-        t = ICDOfficialAPIClient(self.clientId,self.clientSecret)
-        self.assertTrue(self.client is t)
+        t1 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
+        t2 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
+        self.assertTrue(t1 is t2)
     
     def testWrongClientSecretDoesNotBreakExisting(self):
         self.assertRaises(ConnectionError, lambda: ICDOfficialAPIClient(self.clientId,"rabarbaro"))
@@ -82,6 +83,15 @@ class TestICDOfficialAPIClient(unittest.TestCase):
             self.client.checkRelease("2024-01","en")
         except Exception as e:
             self.fail("Unexpected exception raised by checkRelease(): " + repr(e))
+    
+    def testCreateClientAfterBadSecret(self):
+        ICDOfficialAPIClient._instances={}
+        self.assertRaises(ConnectionError, lambda: ICDOfficialAPIClient(self.clientId,"ramandolo"))
+        try:
+            client2 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
+            self.assertTrue(client2.checkRelease("2024-01","en"))
+        except Exception as e:
+            self.fail("Unexpected exception: " + repr(e))
 
 
 

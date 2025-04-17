@@ -44,7 +44,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
 
     def __new__(cls, clientId : str, clientSecret : str):
         if clientId not in cls._instances:
-            cls._instances[clientId] = super(ICDOfficialAPIClient, cls).__new__(cls)
+            return super(ICDOfficialAPIClient, cls).__new__(cls)
         elif cls._instances[clientId]._clientSecret != clientSecret: # Raises error if clientSecret is wrong
             raise ConnectionError("Provided clientSecret is not consistent with previously provided correct secret.")
         return cls._instances[clientId]
@@ -56,6 +56,7 @@ class ICDOfficialAPIClient(ICDAPIClient):
             self._clientId = clientId
             self._clientSecret = clientSecret
             self.__authenticate()
+            type(self)._instances[clientId] = self # Adds only authenticated Clients to map
 
     # Uses the credentials to create a new token
     def __authenticate(self):
