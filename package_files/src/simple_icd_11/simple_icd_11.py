@@ -460,7 +460,7 @@ class Entity(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getPostcoordinationScale(self) -> dict[str, Entity]:
+    def getPostcoordinationScale(self) -> dict[str, list[Entity]]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -597,7 +597,7 @@ class ProxyEntity(Entity):
             self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getClassKind()  # type: ignore
 
-    def getPostcoordinationScale(self) -> dict[str, Entity]:
+    def getPostcoordinationScale(self) -> dict[str, list[Entity]]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getPostcoordinationScale()  # type: ignore
@@ -701,7 +701,7 @@ class RealEntity(Entity):
         blockId: str,
         codeRange: str,
         classKind: str,
-        postcoordinationScale: dict[str, Entity],
+        postcoordinationScale: dict[str, list[Entity]],
         children: list[Entity],
         childrenElsewhere: list[Entity],
         parent: Entity | None,
@@ -783,7 +783,7 @@ class RealEntity(Entity):
     def getClassKind(self) -> str:
         return self.__classKind
 
-    def getPostcoordinationScale(self) -> dict[str, Entity]:
+    def getPostcoordinationScale(self) -> dict[str, list[Entity]]:
         return self.__postcoordinationScale.copy()
 
     def isResidual(self) -> bool:
@@ -1004,7 +1004,7 @@ class ICDExplorer:
         if "codeRange" in data:
             codeRange = data["codeRange"]
         classKind = data["classKind"]
-        postcoordinationScale: dict[str, Entity] = {}
+        postcoordinationScale: dict[str, list[Entity]] = {}
         if "postcoordinationScale" in data:
             for c in data["postcoordinationScale"]:
                 axisName = c["axisName"].split("/schema/")[1]
