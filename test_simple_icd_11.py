@@ -1,7 +1,6 @@
 import unittest
 from simple_icd_11 import ICDOfficialAPIClient, ICDExplorer, ProxyEntity, RealEntity
 
-
 class TestICDOfficialAPIClient(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -9,106 +8,91 @@ class TestICDOfficialAPIClient(unittest.TestCase):
         cls.clientId = f.readline().strip()
         cls.clientSecret = f.readline().strip()
         f.close()
-        cls.client = ICDOfficialAPIClient(cls.clientId, cls.clientSecret)
+        cls.client = ICDOfficialAPIClient(cls.clientId,cls.clientSecret)
 
     def compromiseToken(self):
-        if self.client._ICDOfficialAPIClient__token[-1] == "A":  # type: ignore
-            self.client._ICDOfficialAPIClient__token = self.client._ICDOfficialAPIClient__token[:-1] + "B"  # type: ignore
+        if(self.client._ICDOfficialAPIClient__token[-1]=="A"): # type: ignore
+            self.client._ICDOfficialAPIClient__token = self.client._ICDOfficialAPIClient__token[:-1]+"B" # type: ignore
         else:
-            self.client._ICDOfficialAPIClient__token = self.client._ICDOfficialAPIClient__token[:-1] + "A"  # type: ignore
-        if self.client._ICDOfficialAPIClient__token[0] == "w":  # type: ignore
-            self.client._ICDOfficialAPIClient__token = "a" + self.client._ICDOfficialAPIClient__token[1:]  # type: ignore
+            self.client._ICDOfficialAPIClient__token = self.client._ICDOfficialAPIClient__token[:-1]+"A" # type: ignore
+        if(self.client._ICDOfficialAPIClient__token[0]=="w"): # type: ignore
+            self.client._ICDOfficialAPIClient__token = "a"+self.client._ICDOfficialAPIClient__token[1:] # type: ignore
         else:
-            self.client._ICDOfficialAPIClient__token = "w" + self.client._ICDOfficialAPIClient__token[1:]  # type: ignore
+            self.client._ICDOfficialAPIClient__token = "w"+self.client._ICDOfficialAPIClient__token[1:] # type: ignore
 
     def testLookupCodeOk(self):
-        json_dict = self.client.lookupCode("1F0Y", "2024-01", "en")
-        self.assertEqual(json_dict["code"], "1F0Y")
-        self.assertEqual(
-            json_dict["@id"],
-            "http://id.who.int/icd/release/11/2024-01/mms/1646490591/other",
-        )
+        json_dict = self.client.lookupCode("1F0Y","2024-01","en")
+        self.assertEqual(json_dict["code"],"1F0Y")
+        self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/1646490591/other")
 
     def testLookupCodeNotExists(self):
         with self.assertRaises(LookupError):
-            self.client.lookupCode("banana", "2024-01", "en")
+            self.client.lookupCode("banana","2024-01","en")
 
     def testLookupCodeOkOldToken(self):
         self.compromiseToken()
-        json_dict = self.client.lookupCode("1F0Y", "2024-01", "en")
-        self.assertEqual(json_dict["code"], "1F0Y")
-        self.assertEqual(
-            json_dict["@id"],
-            "http://id.who.int/icd/release/11/2024-01/mms/1646490591/other",
-        )
+        json_dict = self.client.lookupCode("1F0Y","2024-01","en")
+        self.assertEqual(json_dict["code"],"1F0Y")
+        self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/1646490591/other")
 
     def testLookupIdOk(self):
-        json_dict = self.client.lookupId("218513628", "2024-01", "en")
-        self.assertEqual(json_dict["code"], "9B71.1")
-        self.assertEqual(
-            json_dict["@id"], "http://id.who.int/icd/release/11/2024-01/mms/218513628"
-        )
+        json_dict = self.client.lookupId("218513628","2024-01","en")
+        self.assertEqual(json_dict["code"],"9B71.1")
+        self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/218513628")
 
     def testLookupIdNotExists(self):
         with self.assertRaises(LookupError):
-            self.client.lookupId("5", "2024-01", "en")
+            self.client.lookupId("5","2024-01","en")
 
     def testLookupIdOkOldToken(self):
         self.compromiseToken()
-        json_dict = self.client.lookupId("218513628", "2024-01", "en")
-        self.assertEqual(json_dict["code"], "9B71.1")
-        self.assertEqual(
-            json_dict["@id"], "http://id.who.int/icd/release/11/2024-01/mms/218513628"
-        )
+        json_dict = self.client.lookupId("218513628","2024-01","en")
+        self.assertEqual(json_dict["code"],"9B71.1")
+        self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/218513628")
 
-    def testGetLatestReleaseOk(self):  # needs to be updated when new release comes out
-        self.assertEqual(self.client.getLatestRelease("en"), "2025-01")
+    def testGetLatestReleaseOk(self): #needs to be updated when new release comes out
+        self.assertEqual(self.client.getLatestRelease("en"),"2025-01")
 
     def testGetLatestReleaseWrongLanguage(self):
         with self.assertRaises(LookupError):
             self.client.getLatestRelease("onion")
 
-    def testGetLatestReleaseOldToken(
-        self,
-    ):  # needs to be updated when new release comes out
+    def testGetLatestReleaseOldToken(self): #needs to be updated when new release comes out
         self.compromiseToken()
-        self.assertEqual(self.client.getLatestRelease("en"), "2025-01")
+        self.assertEqual(self.client.getLatestRelease("en"),"2025-01")
 
     def testCheckReleaseTrue(self):
-        self.assertTrue(self.client.checkRelease("2024-01", "en"))
+        self.assertTrue(self.client.checkRelease("2024-01","en"))
 
     def testCheckReleaseFalse(self):
-        self.assertFalse(self.client.checkRelease("3124-01", "en"))
+        self.assertFalse(self.client.checkRelease("3124-01","en"))
 
     def testCheckReleaseOldToken(self):
         self.compromiseToken()
-        self.assertTrue(self.client.checkRelease("2024-01", "en"))
+        self.assertTrue(self.client.checkRelease("2024-01","en"))
 
     def testNoDuplicateInstances(self):
-        t1 = ICDOfficialAPIClient(self.clientId, self.clientSecret)
-        t2 = ICDOfficialAPIClient(self.clientId, self.clientSecret)
+        t1 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
+        t2 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
         self.assertTrue(t1 is t2)
 
     def testWrongClientSecretDoesNotBreakExisting(self):
-        self.assertRaises(
-            ConnectionError, lambda: ICDOfficialAPIClient(self.clientId, "rabarbaro")
-        )
+        self.assertRaises(ConnectionError, lambda: ICDOfficialAPIClient(self.clientId,"rabarbaro"))
         self.compromiseToken()
         try:
-            self.client.checkRelease("2024-01", "en")
+            self.client.checkRelease("2024-01","en")
         except Exception as e:
             self.fail("Unexpected exception raised by checkRelease(): " + repr(e))
 
     def testCreateClientAfterBadSecret(self):
-        ICDOfficialAPIClient._instances = {}
-        self.assertRaises(
-            ConnectionError, lambda: ICDOfficialAPIClient(self.clientId, "ramandolo")
-        )
+        ICDOfficialAPIClient._instances={}
+        self.assertRaises(ConnectionError, lambda: ICDOfficialAPIClient(self.clientId,"ramandolo"))
         try:
-            client2 = ICDOfficialAPIClient(self.clientId, self.clientSecret)
-            self.assertTrue(client2.checkRelease("2024-01", "en"))
+            client2 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
+            self.assertTrue(client2.checkRelease("2024-01","en"))
         except Exception as e:
             self.fail("Unexpected exception: " + repr(e))
+
 
 
 class TestProxyEntity(unittest.TestCase):
@@ -118,37 +102,28 @@ class TestProxyEntity(unittest.TestCase):
         clientId = f.readline().strip()
         clientSecret = f.readline().strip()
         f.close()
-        cls.explorer = ICDExplorer("en", clientId, clientSecret, release="2024-01")
+        cls.explorer = ICDExplorer("en",clientId,clientSecret,release="2024-01")
 
     def testNoLookup(self):
         fake_uri = "it.wikipedia.org/wiki/Convento_dei_Domenicani_(Pordenone)"
-        prx = ProxyEntity(self.explorer, "557175275", fake_uri)
-        self.assertEqual(prx.getURI(), fake_uri)
+        prx = ProxyEntity(self.explorer,"557175275",fake_uri)
+        self.assertEqual(prx.getURI(),fake_uri)
 
     def testDoesLookup(self):
-        prx = ProxyEntity(
-            self.explorer, "557175275", "icd.who.int/browse/2024-01/mms/557175275"
-        )
-        self.assertEqual(prx.getCode(), "8B25.4")
+        prx = ProxyEntity(self.explorer,"557175275","icd.who.int/browse/2024-01/mms/557175275")
+        self.assertEqual(prx.getCode(),"8B25.4")
 
 
-class TestICDExplorer(unittest.TestCase):  # tests also RealEntity
+
+class TestICDExplorer(unittest.TestCase): #tests also RealEntity
     @classmethod
     def setUpClass(cls):
         f = open("api_credentials.txt", "r")
         cls.clientId = f.readline().strip()
         cls.clientSecret = f.readline().strip()
         f.close()
-        cls.explorer = ICDExplorer(
-            "en", cls.clientId, cls.clientSecret, release="2024-01"
-        )
-        cls.explorerCodeRanges = ICDExplorer(
-            "en",
-            cls.clientId,
-            cls.clientSecret,
-            release="2024-01",
-            useCodeRangesAsCodes=True,
-        )
+        cls.explorer = ICDExplorer("en",cls.clientId,cls.clientSecret,release="2024-01")
+        cls.explorerCodeRanges = ICDExplorer("en",cls.clientId,cls.clientSecret,release="2024-01",useCodeRangesAsCodes=True)
 
     def testIsValidCode(self):
         self.assertFalse(self.explorer.isValidCode("8B10-8B1Z"))
@@ -167,124 +142,124 @@ class TestICDExplorer(unittest.TestCase):  # tests also RealEntity
 
     def testGetEntityFromCode(self):
         e = self.explorer.getEntityFromCode("5C90.0")
-        self.assertEqual(e.getId(), "831518052")
+        self.assertEqual(e.getId(),"831518052")
         e = self.explorerCodeRanges.getEntityFromCode("5A00-5B3Z")
-        self.assertEqual(e.getId(), "461716838")
+        self.assertEqual(e.getId(),"461716838")
         with self.assertRaises(LookupError):
             self.explorer.getEntityFromCode("5A00-5B3Z")
 
     def testGetEntityFromId(self):
         e = self.explorer.getEntityFromId("831518052")
-        self.assertEqual(e.getCode(), "5C90.0")
+        self.assertEqual(e.getCode(),"5C90.0")
         with self.assertRaises(LookupError):
             self.explorer.getEntityFromId("5A00-5B3Z")
 
     def testGetLanguage(self):
-        self.assertEqual(self.explorer.getLanguage(), "en")
+        self.assertEqual(self.explorer.getLanguage(),"en")
 
     def testGetRelease(self):
-        self.assertEqual(self.explorer.getRelease(), "2024-01")
+        self.assertEqual(self.explorer.getRelease(),"2024-01")
 
     def testWrongLanguage(self):
         with self.assertRaises(LookupError):
-            ICDExplorer("klingon", self.clientId, self.clientSecret, release="2024-01")
+            ICDExplorer("klingon",self.clientId,self.clientSecret,release="2024-01")
 
     def testWrongRelease(self):
         with self.assertRaises(LookupError):
-            ICDExplorer("en", self.clientId, self.clientSecret, release="3034-01")
+            ICDExplorer("en",self.clientId,self.clientSecret,release="3034-01")
 
     def testGetId(self):
         e = self.explorer.getEntityFromCode("2B30")
-        self.assertEqual(e.getId(), "1528863768")
+        self.assertEqual(e.getId(),"1528863768")
 
     def testGetURI(self):
         e = self.explorer.getEntityFromCode("2B30")
-        self.assertEqual(
-            e.getURI(), "http://id.who.int/icd/release/11/2024-01/mms/1528863768"
-        )
+        self.assertEqual(e.getURI(),"http://id.who.int/icd/release/11/2024-01/mms/1528863768")
 
     def testGetCode(self):
         e = self.explorer.getEntityFromCode("2B30")
-        self.assertEqual(e.getCode(), "2B30")
+        self.assertEqual(e.getCode(),"2B30")
 
     def testGetTitle(self):
         e = self.explorer.getEntityFromCode("2B30")
-        self.assertEqual(e.getTitle(), "Hodgkin lymphoma")
+        self.assertEqual(e.getTitle(),"Hodgkin lymphoma")
 
     def testGetDefinition(self):
         e = self.explorer.getEntityFromCode("2B30")
-        self.assertEqual(
-            e.getDefinition(),
-            "Malignant lymphomas, previously known as Hodgkin's disease, characterised by the presence of large tumour cells in an abundant admixture of nonneoplastic cells. There are two distinct subtypes: nodular lymphocyte predominant Hodgkin lymphoma and classical Hodgkin lymphoma. Hodgkin lymphoma involves primarily lymph nodes.",
-        )
+        self.assertEqual(e.getDefinition(),"Malignant lymphomas, previously known as Hodgkin's disease, characterised by the presence of large tumour cells in an abundant admixture of nonneoplastic cells. There are two distinct subtypes: nodular lymphocyte predominant Hodgkin lymphoma and classical Hodgkin lymphoma. Hodgkin lymphoma involves primarily lymph nodes.")
 
     def testGetLongDefinition(self):
         e = self.explorer.getEntityFromCode("2B30")
-        self.assertEqual(e.getLongDefinition(), "")
+        self.assertEqual(e.getLongDefinition(),"")
         e = self.explorer.getEntityFromCode("3A50.2")
-        self.assertEqual(
-            e.getLongDefinition(),
-            "Beta-thalassaemia (BT) is marked by deficiency (B+) or absence (B0) of synthesis of the beta globulin chain of the haemoglobin (Hb) protein. Prevalence is unknown but incidence at birth of the severe form is estimated at 100,000/year. The disease was initially described in the Mediterranean basin but severe forms of BT occur throughout the Middle East, South East Asia, India and China. Population migration has lead to global distribution of the disease. Three types of BT have been described. 1) Thalassaemia minor (BT-minor) is the heterozygous form and is usually asymptomatic. 2) Thalassaemia major (Cooley anaemia; BT-major) is the homozygous form and is associated with microcytic and hypochromic anaemia resulting from dyserythropoiesis and haemolysis. Splenomegaly is also present. Onset occurs from 6-24 months of age. The severe anaemia requires systematic transfusions to maintain Hb levels within the range of 90-100 g/L and allow normal activity. Transfusion of red cell concentrates results in iron overload which hampers the vital prognosis (due to cardiac involvement) and causes significant morbidity (due to endocrinal and hepatic manifestations). 3) Thalassaemia intermedia (BTI) groups together around 10% of homozygous disease forms with numerous compound heterozygous forms. The degree of anaemia in BTI is variable, but is less severe and is diagnosed later than that in BT-major. Patients with BTI may or may not require occasional transfusions. Hypersplenism, biliary lithiasis, extramedullary haematopoiesis, thrombotic complications and progressive iron overload may occur. Diagnosis of BT relies on analysis of Hb by electrophoresis or HPLC. In BT-major, HbA is absent or greatly reduced and HbF predominates. In BT-minor, the levels of Hb A2 are increased and the levels Hb are usually normal with microcytic and hypochromic pseudopolycythaemia. Transmission is autosomal recessive and around 200 mutations (B0 or B+) have been identified. Genetic counselling is recommended for characterising the mutation, preparing management for the affected child and, in some cases, for prenatal diagnosis. There are two lines of treatment for BT. 1) A combination of transfusions and chelators (early and regular parenteral deferoxamine has led to increased survival during the last 30 years). Oral administration of active iron chelators and surveillance of tissue iron overload by MRI will probably result in further improvements but long-term follow-up is needed to evaluate impact on morbidity and mortality. In 2006, deferasirox obtained EU marketing authorisation as an Orphan drug for treatment of BT. Despite its cardioprotective properties, the marketing authorisation for deferasirox is restricted to cases in which treatment with deferoxamine fails or is contraindicated. 2) Haematopoietic stem cell transplant is the only curative treatment for BT: results are very favourable for children with HLA-identical familial donors.",
-        )
+        self.assertEqual(e.getLongDefinition(),"Beta-thalassaemia (BT) is marked by deficiency (B+) or absence (B0) of synthesis of the beta globulin chain of the haemoglobin (Hb) protein. Prevalence is unknown but incidence at birth of the severe form is estimated at 100,000/year. The disease was initially described in the Mediterranean basin but severe forms of BT occur throughout the Middle East, South East Asia, India and China. Population migration has lead to global distribution of the disease. Three types of BT have been described. 1) Thalassaemia minor (BT-minor) is the heterozygous form and is usually asymptomatic. 2) Thalassaemia major (Cooley anaemia; BT-major) is the homozygous form and is associated with microcytic and hypochromic anaemia resulting from dyserythropoiesis and haemolysis. Splenomegaly is also present. Onset occurs from 6-24 months of age. The severe anaemia requires systematic transfusions to maintain Hb levels within the range of 90-100 g/L and allow normal activity. Transfusion of red cell concentrates results in iron overload which hampers the vital prognosis (due to cardiac involvement) and causes significant morbidity (due to endocrinal and hepatic manifestations). 3) Thalassaemia intermedia (BTI) groups together around 10% of homozygous disease forms with numerous compound heterozygous forms. The degree of anaemia in BTI is variable, but is less severe and is diagnosed later than that in BT-major. Patients with BTI may or may not require occasional transfusions. Hypersplenism, biliary lithiasis, extramedullary haematopoiesis, thrombotic complications and progressive iron overload may occur. Diagnosis of BT relies on analysis of Hb by electrophoresis or HPLC. In BT-major, HbA is absent or greatly reduced and HbF predominates. In BT-minor, the levels of Hb A2 are increased and the levels Hb are usually normal with microcytic and hypochromic pseudopolycythaemia. Transmission is autosomal recessive and around 200 mutations (B0 or B+) have been identified. Genetic counselling is recommended for characterising the mutation, preparing management for the affected child and, in some cases, for prenatal diagnosis. There are two lines of treatment for BT. 1) A combination of transfusions and chelators (early and regular parenteral deferoxamine has led to increased survival during the last 30 years). Oral administration of active iron chelators and surveillance of tissue iron overload by MRI will probably result in further improvements but long-term follow-up is needed to evaluate impact on morbidity and mortality. In 2006, deferasirox obtained EU marketing authorisation as an Orphan drug for treatment of BT. Despite its cardioprotective properties, the marketing authorisation for deferasirox is restricted to cases in which treatment with deferoxamine fails or is contraindicated. 2) Haematopoietic stem cell transplant is the only curative treatment for BT: results are very favourable for children with HLA-identical familial donors.")
 
     def testFullySpecifiedName(self):
         # couldn't find any example with a non-empty field!
         e = self.explorer.getEntityFromCode("2B30")
-        self.assertEqual(e.getFullySpecifiedName(), "")
+        self.assertEqual(e.getFullySpecifiedName(),"")
 
     def testDiagnosticCriteria(self):
         e = self.explorer.getEntityFromCode("6E40")
-        self.assertIn(
-            "# 6E40 General Diagnostic Requirements for Psychological or Behavioural Factors Affecting Disorders or Diseases Classified Elsewhere \n\n## Essential",
-            e.getDiagnosticCriteria(),
-        )
+        self.assertIn("# 6E40 General Diagnostic Requirements for Psychological or Behavioural Factors Affecting Disorders or Diseases Classified Elsewhere \n\n## Essential",e.getDiagnosticCriteria())
 
     def testGetCodingNote(self):
         # could not find an example with a non-empty field!
         e = self.explorer.getEntityFromId("2019647878")
-        self.assertEqual(e.getCodingNote(), "")
-        self.assertEqual(e.getCodingNote(includeFromUpperLevels=True), "")
+        self.assertEqual(e.getCodingNote(),"")
+        self.assertEqual(e.getCodingNote(includeFromUpperLevels=True),"")
 
     def testGetBlockId(self):
         e = self.explorer.getEntityFromId("2019647878")
-        self.assertEqual(e.getBlockId(), "")
+        self.assertEqual(e.getBlockId(),"")
         e = self.explorer.getEntityFromId("1147802348")
-        self.assertEqual(e.getBlockId(), "BlockL2-2A3")
+        self.assertEqual(e.getBlockId(),"BlockL2-2A3")
 
     def testGetCodeRange(self):
         e = self.explorer.getEntityFromId("2019647878")
-        self.assertEqual(e.getCodeRange(), "")
+        self.assertEqual(e.getCodeRange(),"")
         e = self.explorer.getEntityFromId("1147802348")
-        self.assertEqual(e.getCodeRange(), "2A30-2A3Z")
+        self.assertEqual(e.getCodeRange(),"2A30-2A3Z")
 
     def testGetClassKind(self):
         e = self.explorer.getEntityFromCode("13")
-        self.assertEqual(e.getClassKind(), "chapter")
+        self.assertEqual(e.getClassKind(),"chapter")
         e = self.explorer.getEntityFromId("1594312948")
-        self.assertEqual(e.getClassKind(), "block")
+        self.assertEqual(e.getClassKind(),"block")
         e = self.explorer.getEntityFromCode("DA24")
-        self.assertEqual(e.getClassKind(), "category")
+        self.assertEqual(e.getClassKind(),"category")
         e = self.explorer.getEntityFromId("1503334455")
-        self.assertEqual(e.getClassKind(), "window")
+        self.assertEqual(e.getClassKind(),"window")
 
     def testGetPostcoordinationScale(self):
+        # entity #1780040028 (has data)
         e = self.explorer.getEntityFromId("1780040028")
         postcoord_scale = e.getPostcoordinationScale()
         self.assertEqual(len(postcoord_scale), 3)
-        self.assertEqual(postcoord_scale.keys(), {"infectiousAgent", "hasManifestation", "associatedWith"})
+        self.assertEqual([axis.getAxisName() for axis in postcoord_scale], ["infectiousAgent", "hasManifestation", "associatedWith"])
         correct_infectious_agent = ["833038527","1423652218","77655243"]
-        for c in postcoord_scale["infectiousAgent"]:
-            self.assertIn(c.getId(), correct_infectious_agent)
-            correct_infectious_agent.remove(c.getId())
         correct_has_manifestation = ["1370972705", "2044414353", "1112214727", "1472717853"]
-        for c in postcoord_scale["hasManifestation"]:
-            self.assertIn(c.getId(), correct_has_manifestation)
-            correct_has_manifestation.remove(c.getId())
         correct_associated_with = ["1837021781"]
-        for c in postcoord_scale["associatedWith"]:
-            self.assertIn(c.getId(), correct_associated_with)
-            correct_associated_with.remove(c.getId())
-
+        for axis in postcoord_scale:
+            if axis.getAxisName()=="infectiousAgent":
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_infectious_agent)
+                    correct_infectious_agent.remove(c.getId())
+                self.assertEqual(len(correct_infectious_agent),0)
+            elif axis.getAxisName()=="hasManifestation":
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_has_manifestation)
+                    correct_has_manifestation.remove(c.getId())
+                self.assertEqual(len(correct_has_manifestation),0)
+            else: #associatedWith
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_associated_with)
+                    correct_associated_with.remove(c.getId())
+                self.assertEqual(len(correct_associated_with),0)
+        #entity 985094335 (has no data)
+        e = self.explorer.getEntityFromId("985094335")
+        postcoord_scale = e.getPostcoordinationScale()
+        self.assertEqual(len(postcoord_scale), 0)
 
     def testIsResidual(self):
         e = self.explorer.getEntityFromCode("13")
@@ -297,169 +272,126 @@ class TestICDExplorer(unittest.TestCase):  # tests also RealEntity
     def testGetChildren(self):
         # empty
         e = self.explorer.getEntityFromCode("DA24.00")
-        self.assertEqual(len(e.getChildren()), 0)
+        self.assertEqual(len(e.getChildren()),0)
         # children
         e = self.explorer.getEntityFromId("1540965840")
         children = e.getChildren()
-        self.assertEqual(len(children), 5)
-        correct_children = [
-            "1917562684",
-            "21063503",
-            "524771725",
-            "1540965840/other",
-            "1540965840/unspecified",
-        ]
+        self.assertEqual(len(children),5)
+        correct_children = ["1917562684","21063503","524771725","1540965840/other","1540965840/unspecified"]
         for c in children:
-            self.assertIn(c.getId(), correct_children)
+            self.assertIn(c.getId(),correct_children)
             correct_children.remove(c.getId())
         # children with elsewhere
         children = e.getChildren(includeChildrenElsewhere=True)
-        self.assertEqual(len(children), 6)
-        correct_children = [
-            "1917562684",
-            "21063503",
-            "524771725",
-            "1540965840/other",
-            "1540965840/unspecified",
-            "2140459587",
-        ]
+        self.assertEqual(len(children),6)
+        correct_children = ["1917562684","21063503","524771725","1540965840/other","1540965840/unspecified","2140459587"]
         for c in children:
-            self.assertIn(c.getId(), correct_children)
+            self.assertIn(c.getId(),correct_children)
             correct_children.remove(c.getId())
 
     def testGetChildrenElsewhere(self):
         # empty
         e = self.explorer.getEntityFromCode("DA24.00")
-        self.assertEqual(len(e.getChildrenElsewhere()), 0)
+        self.assertEqual(len(e.getChildrenElsewhere()),0)
         # children elsewhere
         e = self.explorer.getEntityFromId("1540965840")
         children = e.getChildrenElsewhere()
-        self.assertEqual(len(children), 1)
-        self.assertEqual(children[0].getId(), "2140459587")
+        self.assertEqual(len(children),1)
+        self.assertEqual(children[0].getId(),"2140459587")
 
     def testGetDescendants(self):
         # empty
         e = self.explorer.getEntityFromCode("DA24.00")
-        self.assertEqual(len(e.getDescendants()), 0)
+        self.assertEqual(len(e.getDescendants()),0)
         # descendants
         e = self.explorer.getEntityFromId("1189893025")
         descendants = e.getDescendants()
-        self.assertEqual(len(descendants), 1)
-        self.assertEqual(descendants[0].getId(), "566170052")
+        self.assertEqual(len(descendants),1)
+        self.assertEqual(descendants[0].getId(),"566170052")
         # descendants with elsewhere
         descendants = e.getDescendants(includeChildrenElsewhere=True)
-        self.assertEqual(len(descendants), 7)
-        correct_descendants = [
-            "566170052",
-            "1529247463",
-            "605819742",
-            "765928537",
-            "1822281676",
-            "1529247463/other",
-            "1529247463/unspecified",
-        ]
+        self.assertEqual(len(descendants),7)
+        correct_descendants = ["566170052","1529247463","605819742","765928537","1822281676","1529247463/other","1529247463/unspecified"]
         for d in descendants:
-            self.assertIn(d.getId(), correct_descendants)
+            self.assertIn(d.getId(),correct_descendants)
             correct_descendants.remove(d.getId())
 
     def testGetParent(self):
         e = self.explorer.getEntityFromCode("X")
         self.assertTrue(e.getParent() is None)
         e = self.explorer.getEntityFromId("120848300")
-        self.assertEqual(e.getParent().getCode(), "9C81")  # type: ignore
+        self.assertEqual(e.getParent().getCode(),"9C81") # type: ignore
 
     def testGetAncestors(self):
         e = self.explorer.getEntityFromCode("X")
-        self.assertEqual(e.getAncestors(), [])
+        self.assertEqual(e.getAncestors(),[])
         e = self.explorer.getEntityFromId("120848300")
         ancestors = e.getAncestors()
-        correct_ancestors = ["1979741228", "1060046426", "868865918"]
-        self.assertEqual(len(ancestors), 3)
+        correct_ancestors = ["1979741228","1060046426","868865918"]
+        self.assertEqual(len(ancestors),3)
         for a in ancestors:
-            self.assertIn(a.getId(), correct_ancestors)
+            self.assertIn(a.getId(),correct_ancestors)
             correct_ancestors.remove(a.getId())
 
     def testGetIndexTerm(self):
         e = self.explorer.getEntityFromId("2003830496")
-        correct_terms = [
-            "Follicular lymphoma grade 2",
-            "mixed nodular lymphoma",
-            "follicular reticulolymphosarcoma",
-            "nodular reticulolymphosarcoma",
-            "small and large cleaved cell follicular lymphoma",
-            "mixed lymphocytic histiocytic nodular lymphoma",
-            "follicular malignant lymphoma of mixed cell type",
-            "mixed small cleaved and large cell follicular malignant lymphoma",
-            "malignant nodular lymphoma of mixed lymphocytic-histiocytic",
-            "malignant nodular lymphoma of mixed cell type",
-            "follicular non Hodgkin lymphoma of mixed small cleaved cell and large cell",
-            "cleaved large cell follicular lymphoma",
-            "follicular germinoblastoma",
-            "follicular lymphosarcoma of mixed cell type",
-            "nodular lymphoma of mixed cell type of lymphocytic-histiocytic",
-        ]
+        correct_terms = ["Follicular lymphoma grade 2", "mixed nodular lymphoma", "follicular reticulolymphosarcoma", "nodular reticulolymphosarcoma", "small and large cleaved cell follicular lymphoma", "mixed lymphocytic histiocytic nodular lymphoma", "follicular malignant lymphoma of mixed cell type", "mixed small cleaved and large cell follicular malignant lymphoma", "malignant nodular lymphoma of mixed lymphocytic-histiocytic", "malignant nodular lymphoma of mixed cell type", "follicular non Hodgkin lymphoma of mixed small cleaved cell and large cell", "cleaved large cell follicular lymphoma", "follicular germinoblastoma", "follicular lymphosarcoma of mixed cell type", "nodular lymphoma of mixed cell type of lymphocytic-histiocytic"]
         terms = e.getIndexTerm()
-        self.assertEqual(len(terms), len(correct_terms))
+        self.assertEqual(len(terms),len(correct_terms))
         for t in terms:
-            self.assertIn(t, correct_terms)
+            self.assertIn(t,correct_terms)
             correct_terms.remove(t)
 
     def testGetInclusion(self):
         e = self.explorer.getEntityFromId("2055968951")
-        correct_inclusions = ["moniliasis", "candidiasis"]
+        correct_inclusions = ["moniliasis","candidiasis"]
         inclusions = e.getInclusion()
-        self.assertEqual(len(inclusions), len(correct_inclusions))
+        self.assertEqual(len(inclusions),len(correct_inclusions))
         for i in inclusions:
-            self.assertIn(i, correct_inclusions)
+            self.assertIn(i,correct_inclusions)
             correct_inclusions.remove(i)
 
     def testGetExclusion(self):
         e = self.explorer.getEntityFromId("1793762788")
-        correct_exclusions = ["1C14", "1C15", "NE83.1"]
+        correct_exclusions = ["1C14","1C15","NE83.1"]
         exclusions = e.getExclusion()
-        self.assertEqual(len(exclusions), len(correct_exclusions))
+        self.assertEqual(len(exclusions),len(correct_exclusions))
         for ex in exclusions:
-            self.assertIn(ex.getCode(), correct_exclusions)
+            self.assertIn(ex.getCode(),correct_exclusions)
             correct_exclusions.remove(ex.getCode())
         # without including upper levels
-        correct_exclusions = ["1C14", "1C15"]
+        correct_exclusions = ["1C14","1C15"]
         exclusions = e.getExclusion(includeFromUpperLevels=False)
-        self.assertEqual(len(exclusions), len(correct_exclusions))
+        self.assertEqual(len(exclusions),len(correct_exclusions))
         for ex in exclusions:
-            self.assertIn(ex.getCode(), correct_exclusions)
+            self.assertIn(ex.getCode(),correct_exclusions)
             correct_exclusions.remove(ex.getCode())
 
     def testGetRelatedEntitiesInMaternalChapter(self):
         e = self.explorer.getEntityFromId("1994012056")
         rl = e.getRelatedEntitiesInMaternalChapter()
-        self.assertEqual(len(rl), 1)
-        self.assertEqual(rl[0].getId(), "1320597992")
+        self.assertEqual(len(rl),1)
+        self.assertEqual(rl[0].getId(),"1320597992")
 
     def testGetRelatedEntitiesInPerinatalChapter(self):
         e = self.explorer.getEntityFromId("1994012056")
         rl = e.getRelatedEntitiesInPerinatalChapter()
-        self.assertEqual(len(rl), 1)
-        self.assertEqual(rl[0].getId(), "1270001765")
+        self.assertEqual(len(rl),1)
+        self.assertEqual(rl[0].getId(),"1270001765")
 
     def testGetBrowserUrl(self):
         e = self.explorer.getEntityFromCode("V")
-        self.assertEqual(
-            e.getBrowserUrl(), "https://icd.who.int/browse/2024-01/mms/en#231358748"
-        )
+        self.assertEqual(e.getBrowserUrl(),"https://icd.who.int/browse/2024-01/mms/en#231358748")
         e = self.explorer.getEntityFromId("2091156678")
-        self.assertEqual(
-            e.getBrowserUrl(), "https://icd.who.int/browse/2024-01/mms/en#2091156678"
-        )
+        self.assertEqual(e.getBrowserUrl(),"https://icd.who.int/browse/2024-01/mms/en#2091156678")
 
     def testGetRealEntityNoDuplicateRequests(self):
-        explorer = ICDExplorer(
-            "en", self.clientId, self.clientSecret, release="2024-01"
-        )
+        explorer = ICDExplorer("en",self.clientId,self.clientSecret,release="2024-01")
         explorer.getEntityFromId("1345814274")
         proxy_entity = explorer.getEntityFromId("377572273")
-        self.assertIsInstance(proxy_entity, ProxyEntity)
+        self.assertIsInstance(proxy_entity,ProxyEntity)
         entity1 = explorer._getRealEntity("377572273")
-        self.assertIsInstance(entity1, RealEntity)
+        self.assertIsInstance(entity1,RealEntity)
         entity2 = explorer._getRealEntity("377572273")
-        self.assertIsInstance(entity2, RealEntity)
-        self.assertEqual(id(entity1), id(entity2))
+        self.assertIsInstance(entity2,RealEntity)
+        self.assertEqual(id(entity1),id(entity2))

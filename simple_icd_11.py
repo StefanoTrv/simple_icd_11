@@ -7,8 +7,7 @@ from typing import Dict
 import requests, json
 from abc import ABC, abstractmethod
 
-__all__ = ["ICDExplorer", "Entity"]  # exports only the needed classes
-
+__all__ = ["ICDExplorer","Entity","PostcoordinationAxis"] #exports only the needed classes
 
 # Abstract class that represents the code that actually interacts with the API
 # All methods in this class and its subclasses can raise ConnectionError at any point if an unresolvable error occurs when trying to communicate with the API
@@ -37,6 +36,7 @@ class ICDAPIClient(ABC):
         raise NotImplementedError()
 
 
+
 # Class for interrogating the official ICD API
 # Singleton for each clientId
 class ICDOfficialAPIClient(ICDAPIClient):
@@ -45,134 +45,81 @@ class ICDOfficialAPIClient(ICDAPIClient):
     def __new__(cls, clientId: str, clientSecret: str):
         if clientId not in cls._instances:
             return super(ICDOfficialAPIClient, cls).__new__(cls)
-        elif (
-            cls._instances[clientId]._clientSecret != clientSecret
-        ):  # Raises error if clientSecret is wrong
-            raise ConnectionError(
-                "Provided clientSecret is not consistent with previously provided correct secret."
-            )
+        elif cls._instances[clientId]._clientSecret != clientSecret: # Raises error if clientSecret is wrong
+            raise ConnectionError("Provided clientSecret is not consistent with previously provided correct secret.")
         return cls._instances[clientId]
 
     def __init__(self, clientId: str, clientSecret: str):
         # Avoid re-initializing an existing instance
-        if not hasattr(
-            self, "_clientId"
-        ):  # Check if the instance is being initialized for the first time
+        if not hasattr(self, "_clientId"): # Check if the instance is being initialized for the first time
             self._locationUrl = "http://id.who.int/icd/release/11/"
             self._clientId = clientId
             self._clientSecret = clientSecret
             self.__authenticate()
-            type(self)._instances[
-                clientId
-            ] = self  # Adds only authenticated Clients to map
+            type(self)._instances[clientId] = self # Adds only authenticated Clients to map
 
     # Uses the credentials to create a new token
     def __authenticate(self):
-        payload = {
-            "client_id": self._clientId,
-            "client_secret": self._clientSecret,
-            "scope": "icdapi_access",
-            "grant_type": "client_credentials",
-        }
-        r = requests.post(
-            "https://icdaccessmanagement.who.int/connect/token", data=payload
-        ).json()
+        payload = {"client_id": self._clientId,
+                   "client_secret": self._clientSecret,
+                   "scope": "icdapi_access",
+                   "grant_type": "client_credentials"}
+        r = requests.post("https://icdaccessmanagement.who.int/connect/token", data=payload).json()
         if "error" in r:
-            raise ConnectionError(
-                "Authentication attempt with official API ended with an error. Error details: "
-                + r["error"]
-            )
+            raise ConnectionError("Authentication attempt with official API ended with an error. Error details: "+r["error"])
         self.__token = r["access_token"]
 
     def lookupCode(self, code: str, release: str, language: str) -> dict:
         uri = self._locationUrl + release + "/mms/codeinfo/" + code
-        headers = {
-            "Authorization": "Bearer " + self.__token,
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-            "releaseId": release,
-            "code": code,
-        }
+        headers = {"Authorization": "Bearer " + self.__token,
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms",
+                   "releaseId": release,
+                   "code": code}
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
             headers["Authorization"] = "Bearer " + self.__token
             r = requests.get(uri, headers=headers)
         if r.status_code == 404:
-            raise LookupError(
-                "No ICD-11 entity with code "
-                + code
-                + " was found for release "
-                + release
-                + " in language "
-                + language
-                + "."
-            )
+            raise LookupError("No ICD-11 entity with code " + code + " was found for release " + release + " in language " + language + ".")
         elif r.status_code == 200:
             j = json.loads(r.text)
             return self.lookupId(j["stemId"].split("/mms/")[1], release, language)
         else:
-            raise ConnectionError(
-                "Error happened while finding entity for code "
-                + code
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while finding entity for code " + code + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
 
     def lookupId(self, id: str, release: str, language: str) -> dict:
         uri = self._locationUrl + release + "/mms/" + id + "?include=diagnosticCriteria"
-        headers = {
-            "Authorization": "Bearer " + self.__token,
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-            "releaseId": release,
-            "id": id,
-            "include": "diagnosticCriteria",
-        }
+        headers = {"Authorization": "Bearer " + self.__token,
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms",
+                   "releaseId": release,
+                   "id": id,
+                   "include": "diagnosticCriteria"}
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
             headers["Authorization"] = "Bearer " + self.__token
             r = requests.get(uri, headers=headers)
         if r.status_code == 404:
-            raise LookupError(
-                "No ICD-11 entity with id "
-                + id
-                + " was found for release "
-                + release
-                + " in language "
-                + language
-                + "."
-            )
+            raise LookupError("No ICD-11 entity with id " + id + " was found for release " + release + " in language " + language + ".")
         elif r.status_code == 200:
             return json.loads(r.text)
         else:
-            raise ConnectionError(
-                "Error happened while finding entity for id "
-                + id
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while finding entity for id " + id + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
 
     def getLatestRelease(self, language: str) -> str:
         uri = self._locationUrl + "mms"
-        headers = {
-            "Authorization": "Bearer " + self.__token,
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-        }
+        headers = {"Authorization": "Bearer " + self.__token,
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms"}
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
@@ -182,34 +129,18 @@ class ICDOfficialAPIClient(ICDAPIClient):
             j = json.loads(r.text)
             return j["release"][0].split("/11/")[1].split("/")[0]
         elif r.status_code == 404:
-            raise LookupError(
-                "Could not find any release for language "
-                + language
-                + '. More details: "'
-                + r.text
-                + '"'
-            )
+            raise LookupError("Could not find any release for language " + language + ". More details: \"" + r.text + "\"")
         else:
-            raise ConnectionError(
-                "Error happened while finding code of last release in language "
-                + language
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while finding code of last release in language " + language + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
 
     def checkRelease(self, release: str, language: str) -> bool:
         uri = self._locationUrl + release + "/mms"
-        headers = {
-            "Authorization": "Bearer " + self.__token,
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-            "releaseId": release,
-        }
+        headers = {"Authorization": "Bearer " + self.__token,
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms",
+                   "releaseId": release}
         r = requests.get(uri, headers=headers)
         if r.status_code == 401:
             self.__authenticate()
@@ -220,17 +151,8 @@ class ICDOfficialAPIClient(ICDAPIClient):
         elif r.status_code == 200:
             return True
         else:
-            raise ConnectionError(
-                "Error happened while checking if release "
-                + release
-                + " exists in language "
-                + language
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while checking if release " + release + " exists in language " + language +". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
+
 
 
 # Class for interrogating an unofficial ICD API
@@ -245,168 +167,87 @@ class ICDOtherAPIClient(ICDAPIClient):
 
     def __init__(self, locationUrl: str):
         # Avoid re-initializing an existing instance
-        if not hasattr(
-            self, "_locationUrl"
-        ):  # Check if the instance is being initialized for the first time
+        if not hasattr(self, "_locationUrl"): # Check if the instance is being initialized for the first time
             self._locationUrl = locationUrl + "icd/release/11/"
-            # checks if destination url is responsive
+            #checks if destination url is responsive
             try:
                 r = requests.head(locationUrl + "icd/entity")
                 if r.status_code != 405:
-                    raise ConnectionError(
-                        'Error happened while trying to connect with url "'
-                        + self._locationUrl
-                        + '". Error code '
-                        + str(r.status_code)
-                        + ' - details:\n"'
-                        + r.text
-                        + '"'
-                    )
+                    raise ConnectionError("Error happened while trying to connect with url \"" + self._locationUrl +"\". Error code " + str(r.status_code) + " - details:\n\"" + r.text + "\"")
             except Exception as e:
-                raise ConnectionError(
-                    'Error happened while trying to connect with url "'
-                    + self._locationUrl
-                    + '" - details:\n"'
-                    + str(e)
-                    + '"'
-                )
+                raise ConnectionError("Error happened while trying to connect with url \"" + self._locationUrl +"\" - details:\n\"" + str(e) + "\"")
 
     def lookupCode(self, code: str, release: str, language: str) -> dict:
         uri = self._locationUrl + release + "/mms/codeinfo/" + code
-        headers = {
-            "Authorization": "",
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-            "releaseId": release,
-            "code": code,
-        }
+        headers = {"Authorization": "",
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms",
+                   "releaseId": release,
+                   "code": code}
         r = requests.get(uri, headers=headers)
         if r.status_code == 404:
-            raise LookupError(
-                "No ICD-11 entity with code "
-                + code
-                + " was found for release "
-                + release
-                + " in language "
-                + language
-                + "."
-            )
+            raise LookupError("No ICD-11 entity with code " + code + " was found for release " + release + " in language " + language + ".")
         elif r.status_code == 200:
             j = json.loads(r.text)
             return self.lookupId(j["stemId"].split("/mms/")[1], release, language)
         else:
-            raise ConnectionError(
-                "Error happened while finding entity for code "
-                + code
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while finding entity for code " + code + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
 
     def lookupId(self, id: str, release: str, language: str) -> dict:
         uri = self._locationUrl + release + "/mms/" + id + "?include=diagnosticCriteria"
-        headers = {
-            "Authorization": "",
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-            "releaseId": release,
-            "id": id,
-            "include": "diagnosticCriteria",
-        }
+        headers = {"Authorization": "",
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms",
+                   "releaseId": release,
+                   "id": id,
+                   "include": "diagnosticCriteria"}
         r = requests.get(uri, headers=headers)
         if r.status_code == 404:
-            raise LookupError(
-                "No ICD-11 entity with id "
-                + id
-                + " was found for release "
-                + release
-                + " in language "
-                + language
-                + "."
-            )
+            raise LookupError("No ICD-11 entity with id " + id + " was found for release " + release + " in language " + language + ".")
         elif r.status_code == 200:
             result = json.loads(r.text)
             if "browserUrl" in result:
-                result["browserUrl"] = result["browserUrl"].replace(
-                    "https://icd.who.int/", "http://localhost/"
-                )
+                result["browserUrl"] = result["browserUrl"].replace("https://icd.who.int/","http://localhost/")
             return result
         else:
-            raise ConnectionError(
-                "Error happened while finding entity for id "
-                + id
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while finding entity for id " + id + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
 
     def getLatestRelease(self, language: str) -> str:
         uri = self._locationUrl + "mms"
-        headers = {
-            "Authorization": "",
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-        }
+        headers = {"Authorization": "",
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms"}
         r = requests.get(uri, headers=headers)
         if r.status_code == 200:
             j = json.loads(r.text)
             return j["release"][0].split("/11/")[1].split("/")[0]
         elif r.status_code == 404:
-            raise LookupError(
-                "Could not find any release for language "
-                + language
-                + '. More details: "'
-                + r.text
-                + '"'
-            )
+            raise LookupError("Could not find any release for language " + language + ". More details: \"" + r.text + "\"")
         else:
-            raise ConnectionError(
-                "Error happened while finding code of last release in language "
-                + language
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while finding code of last release in language " + language + ". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
 
     def checkRelease(self, release: str, language: str) -> bool:
         uri = self._locationUrl + release + "/mms"
-        headers = {
-            "Authorization": "",
-            "Accept": "application/json",
-            "Accept-Language": language,
-            "API-Version": "v2",
-            "linearizationname": "mms",
-            "releaseId": release,
-        }
+        headers = {"Authorization": "",
+                   "Accept": "application/json",
+                   "Accept-Language": language,
+                   "API-Version": "v2",
+                   "linearizationname": "mms",
+                   "releaseId": release}
         r = requests.get(uri, headers=headers)
         if r.status_code == 404:
             return False
         elif r.status_code == 200:
             return True
         else:
-            raise ConnectionError(
-                "Error happened while checking if release "
-                + release
-                + " exists in language "
-                + language
-                + ". Error code "
-                + str(r.status_code)
-                + ' - details: \n"'
-                + r.text
-                + '"'
-            )
+            raise ConnectionError("Error happened while checking if release " + release + " exists in language " + language +". Error code " + str(r.status_code) + " - details: \n\"" + r.text + "\"")
+
 
 
 # Abstract class representing an ICD-11 MMS entity
@@ -460,7 +301,7 @@ class Entity(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getPostcoordinationScale(self) -> dict[str, list[Entity]]:
+    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -512,9 +353,7 @@ class Entity(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def _appendDescendants(
-        self, includeChildrenElsewhere: bool, lst: list[Entity]
-    ) -> None:
+    def _appendDescendants(self, includeChildrenElsewhere: bool, lst: list[Entity]) -> None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -522,19 +361,14 @@ class Entity(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def _appendExclusion(
-        self, lst: list[Entity]
-    ) -> (
-        None
-    ):  # includeFromUpperLevels is omitted from the parameters: it must be true!
+    def _appendExclusion(self, lst: list[Entity]) -> None: # includeFromUpperLevels is omitted from the parameters: it must be true!
         raise NotImplementedError()
+
 
 
 # Proxy class for entities that were found in the description of other entities, so that for now we have limited information about them
 class ProxyEntity(Entity):
-    def __init__(
-        self, explorer: ICDExplorer, id: str, uri: str, parent: Entity | None = None
-    ) -> None:
+    def __init__(self, explorer: ICDExplorer, id: str, uri: str, parent: Entity | None = None) -> None:
         self.__real = None
         self.__explorer = explorer
         self.__id = id
@@ -550,57 +384,57 @@ class ProxyEntity(Entity):
     def getCode(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getCode()  # type: ignore
+        return self.__real.getCode() # type: ignore
 
     def getTitle(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getTitle()  # type: ignore
+        return self.__real.getTitle() # type: ignore
 
     def getDefinition(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getDefinition()  # type: ignore
+        return self.__real.getDefinition() # type: ignore
 
     def getLongDefinition(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getLongDefinition()  # type: ignore
+        return self.__real.getLongDefinition() # type: ignore
 
     def getFullySpecifiedName(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getFullySpecifiedName()  # type: ignore
+        return self.__real.getFullySpecifiedName() # type: ignore
 
     def getDiagnosticCriteria(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getDiagnosticCriteria()  # type: ignore
+        return self.__real.getDiagnosticCriteria() # type: ignore
 
     def getCodingNote(self, includeFromUpperLevels: bool = False) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getCodingNote(includeFromUpperLevels=includeFromUpperLevels)  # type: ignore
+        return self.__real.getCodingNote(includeFromUpperLevels=includeFromUpperLevels) # type: ignore
 
     def getBlockId(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getBlockId()  # type: ignore
+        return self.__real.getBlockId() # type: ignore
 
     def getCodeRange(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getCodeRange()  # type: ignore
+        return self.__real.getCodeRange() # type: ignore
 
     def getClassKind(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getClassKind()  # type: ignore
+        return self.__real.getClassKind() # type: ignore
 
-    def getPostcoordinationScale(self) -> dict[str, list[Entity]]:
+    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getPostcoordinationScale()  # type: ignore
+        return self.__real.getPostcoordinationScale() # type: ignore
 
     def isResidual(self) -> bool:
         return "unspecified" in self.__id or "other" in self.__id
@@ -608,80 +442,78 @@ class ProxyEntity(Entity):
     def getChildren(self, includeChildrenElsewhere: bool = False) -> list[Entity]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getChildren(includeChildrenElsewhere=includeChildrenElsewhere)  # type: ignore
+        return self.__real.getChildren(includeChildrenElsewhere = includeChildrenElsewhere) # type: ignore
 
     def getChildrenElsewhere(self) -> list[Entity]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getChildrenElsewhere()  # type: ignore
+        return self.__real.getChildrenElsewhere() # type: ignore
 
     def getDescendants(self, includeChildrenElsewhere: bool = False) -> list[Entity]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getDescendants(includeChildrenElsewhere=includeChildrenElsewhere)  # type: ignore
+        return self.__real.getDescendants(includeChildrenElsewhere = includeChildrenElsewhere) # type: ignore
 
     def getParent(self) -> Entity | None:
         if self.__parent is not None:
             return self.__parent
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        self.__parent = self.__real.getParent()  # type: ignore
+        self.__parent = self.__real.getParent() # type: ignore
         return self.__parent
 
     def getAncestors(self) -> list[Entity]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getAncestors()  # type: ignore
+        return self.__real.getAncestors() # type: ignore
 
     def getIndexTerm(self) -> list[str]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getIndexTerm()  # type: ignore
+        return self.__real.getIndexTerm() # type: ignore
 
     def getInclusion(self) -> list[str]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getInclusion()  # type: ignore
+        return self.__real.getInclusion() # type: ignore
 
     def getExclusion(self, includeFromUpperLevels: bool = True) -> list[Entity]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getExclusion(includeFromUpperLevels=includeFromUpperLevels)  # type: ignore
+        return self.__real.getExclusion(includeFromUpperLevels = includeFromUpperLevels) # type: ignore
 
     def getRelatedEntitiesInMaternalChapter(self) -> list[Entity]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getRelatedEntitiesInMaternalChapter()  # type: ignore
+        return self.__real.getRelatedEntitiesInMaternalChapter() # type: ignore
 
     def getRelatedEntitiesInPerinatalChapter(self) -> list[Entity]:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getRelatedEntitiesInPerinatalChapter()  # type: ignore
+        return self.__real.getRelatedEntitiesInPerinatalChapter() # type: ignore
 
     def getBrowserUrl(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getBrowserUrl()  # type: ignore
+        return self.__real.getBrowserUrl() # type: ignore
 
     def _setParent(self, p: Entity) -> None:
         self.__parent = p
 
-    def _appendDescendants(
-        self, includeChildrenElsewhere: bool, lst: list[Entity]
-    ) -> None:
+    def _appendDescendants(self, includeChildrenElsewhere: bool, lst: list[Entity]) -> None:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        self.__real._appendDescendants(includeChildrenElsewhere, lst)  # type: ignore
+        self.__real._appendDescendants(includeChildrenElsewhere, lst) # type: ignore
 
     def _appendAncestors(self, lst: list[Entity]) -> None:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        self.__real._appendAncestors(lst)  # type: ignore
+        self.__real._appendAncestors(lst) # type: ignore
 
     def _appendExclusion(self, lst: list[Entity]) -> None:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
-        self.__real._appendExclusion(lst)  # type: ignore
+        self.__real._appendExclusion(lst) # type: ignore
 
 
 # Concrete class containing all the data (that we are interested in) of single ICD-11 MMS entities
@@ -701,7 +533,7 @@ class RealEntity(Entity):
         blockId: str,
         codeRange: str,
         classKind: str,
-        postcoordinationScale: dict[str, list[Entity]],
+        postcoordinationScale: list[PostcoordinationAxis],
         children: list[Entity],
         childrenElsewhere: list[Entity],
         parent: Entity | None,
@@ -759,18 +591,12 @@ class RealEntity(Entity):
     def getDiagnosticCriteria(self) -> str:
         return self.__diagnosticCriteria
 
-    def getCodingNote(
-        self, includeFromUpperLevels: bool = False
-    ) -> str:  # implementation could be made more efficient
+    def getCodingNote(self, includeFromUpperLevels: bool = False) -> str: #implementation could be made more efficient
         if includeFromUpperLevels and self.__parent is not None:
-            if self.__codingNote == "":  # avoids merging with empty strings
+            if self.__codingNote == "": #avoids merging with empty strings
                 return self.__parent.getCodingNote(includeFromUpperLevels=True)
             else:
-                return (
-                    self.__parent.getCodingNote(includeFromUpperLevels=True)
-                    + "\n"
-                    + self.__codingNote
-                )
+                return self.__parent.getCodingNote(includeFromUpperLevels=True) + "\n" + self.__codingNote
         else:
             return self.__codingNote
 
@@ -783,7 +609,7 @@ class RealEntity(Entity):
     def getClassKind(self) -> str:
         return self.__classKind
 
-    def getPostcoordinationScale(self) -> dict[str, list[Entity]]:
+    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
         return self.__postcoordinationScale.copy()
 
     def isResidual(self) -> bool:
@@ -832,9 +658,7 @@ class RealEntity(Entity):
     def getBrowserUrl(self) -> str:
         return self.__browserUrl
 
-    def _appendDescendants(
-        self, includeChildrenElsewhere: bool, lst: list[Entity]
-    ) -> None:
+    def _appendDescendants(self, includeChildrenElsewhere: bool, lst: list[Entity]) -> None:
         for child in self.__children:
             lst.append(child)
             child._appendDescendants(includeChildrenElsewhere, lst)
@@ -856,6 +680,7 @@ class RealEntity(Entity):
             self.__parent._appendExclusion(lst)
 
 
+
 # Main class of the library
 # Interacts with an API client to create Entity objects
 class ICDExplorer:
@@ -868,24 +693,18 @@ class ICDExplorer:
         customUrl: str | None = None,
         useCodeRangesAsCodes: bool = False,
     ) -> None:
-        if customUrl is None:  # creates correct API client
-            self.__clientAPI = ICDOfficialAPIClient(clientId, clientSecret)
+        if customUrl is None: #creates correct API client
+            self.__clientAPI = ICDOfficialAPIClient(clientId,clientSecret)
         else:
             self.__clientAPI = ICDOtherAPIClient(customUrl)
 
-        if release is None:  # finds or sets release
+        if release is None: #finds or sets release
             self.__release = self.__clientAPI.getLatestRelease(language)
         else:
             if self.__clientAPI.checkRelease(release, language):
                 self.__release = release
             else:
-                raise LookupError(
-                    'Release "'
-                    + release
-                    + '" was not found for language "'
-                    + language
-                    + '"'
-                )
+                raise LookupError("Release \""+release+"\" was not found for language \""+language+"\"")
 
         self.__language = language
         self.__useCodeRangesAsCodes = useCodeRangesAsCodes
@@ -896,13 +715,11 @@ class ICDExplorer:
     def isValidCode(self, code: str) -> bool:
         if code in self.__codeToIdMap:
             return True
-        if self.__useCodeRangesAsCodes and "-" in code:  # code ranges as codes
+        if self.__useCodeRangesAsCodes and "-" in code: #code ranges as codes
             if self.isValidCode(code.split("-")[0]):
                 e = self.getEntityFromCode(code.split("-")[0])
                 e = e.getParent()
-                while (
-                    e is not None
-                ):  # controls the ancestors until it find the code or it reaches a chapter
+                while e is not None: # controls the ancestors until it find the code or it reaches a chapter
                     if e.getCode() == code:
                         return True
                     e = e.getParent()
@@ -932,25 +749,15 @@ class ICDExplorer:
     def getEntityFromCode(self, code: str) -> Entity:
         if code in self.__codeToIdMap:
             return self.__idMap[self.__codeToIdMap[code]]
-        if self.__useCodeRangesAsCodes and "-" in code:  # code ranges as codes
+        if self.__useCodeRangesAsCodes and "-" in code: #code ranges as codes
             if self.isValidCode(code.split("-")[0]):
                 e = self.getEntityFromCode(code.split("-")[0])
                 e = e.getParent()
-                while (
-                    e is not None
-                ):  # controls the ancestors until it find the code or it reaches a chapter
+                while e is not None: # controls the ancestors until it find the code or it reaches a chapter
                     if e.getCode() == code:
                         return e
                     e = e.getParent()
-            raise LookupError(
-                'Code range "'
-                + code
-                + '" was not found for release "'
-                + self.__release
-                + '" in language "'
-                + self.__language
-                + '".'
-            )
+            raise LookupError("Code range \""+code+"\" was not found for release \""+self.__release+"\" in language \""+self.__language+"\".")
         dict = self.__clientAPI.lookupCode(code, self.__release, self.__language)
         return self.__createAndAddNewEntity(dict)
 
@@ -971,9 +778,7 @@ class ICDExplorer:
     def _getRealEntity(self, id: str) -> Entity:
         if id in self.__idMap and isinstance(self.__idMap[id], RealEntity):
             return self.__idMap[id]
-        return self.__createAndAddNewEntity(
-            self.__clientAPI.lookupId(id, self.__release, self.__language)
-        )
+        return self.__createAndAddNewEntity(self.__clientAPI.lookupId(id,self.__release,self.__language))
 
     # Creates a new entity from its data and updates both dictionaries
     # If new proxy entities are created in the process, they too are added to __idMap
@@ -1004,19 +809,22 @@ class ICDExplorer:
         if "codeRange" in data:
             codeRange = data["codeRange"]
         classKind = data["classKind"]
-        postcoordinationScale: dict[str, list[Entity]] = {}
+        postcoordinationScale: list[PostcoordinationAxis] = []
         if "postcoordinationScale" in data:
             for c in data["postcoordinationScale"]:
-                axisName = c["axisName"].split("/schema/")[1]
-                postcoordinationScale[axisName] = []
+                axisName: str = c["axisName"].split("/schema/")[1]
+                requiredPostcoordination: bool = c["requiredPostcoordination"] == "true"
+                allowMultipleValues: str = c["allowMultipleValues"]
+                scaleEntity: list[Entity] = []
                 for e in c["scaleEntity"]:
                     e_id = e.split("/mms/")[1]
                     if e_id in self.__idMap:
-                        postcoordinationScale[axisName].append(self.__idMap[e_id])
+                        scaleEntity.append(self.__idMap[e_id])
                     else:
                         new_e = ProxyEntity(self, e_id, c)
-                        postcoordinationScale[axisName].append(new_e)
+                        scaleEntity.append(new_e)
                         self.__idMap[new_e.getId()] = new_e
+                postcoordinationScale.append(PostcoordinationAxis(axisName, requiredPostcoordination, allowMultipleValues, scaleEntity))
         children: list[Entity] = []
         newChildren: list[ProxyEntity] = []
         if "child" in data:
@@ -1026,9 +834,9 @@ class ICDExplorer:
                     children.append(self.__idMap[c_id])
                 else:
                     new_e = ProxyEntity(self, c_id, c)
-                    newChildren.append(new_e)  # their parent will be updated later
+                    newChildren.append(new_e) # their parent will be updated later
                     children.append(new_e)
-                    self.__idMap[new_e.getId()] = new_e
+                    self.__idMap[new_e.getId()]=new_e
         childrenElsewhere: list[Entity] = []
         if "foundationChildElsewhere" in data:
             for c in data["foundationChildElsewhere"]:
@@ -1038,7 +846,7 @@ class ICDExplorer:
                 else:
                     new_e = ProxyEntity(self, c_id, c)
                     childrenElsewhere.append(new_e)
-                    self.__idMap[new_e.getId()] = new_e
+                    self.__idMap[new_e.getId()]=new_e
         if classKind == "chapter":
             parent = None
         else:
@@ -1047,7 +855,7 @@ class ICDExplorer:
                 parent = self.__idMap[p_id]
             else:
                 parent = ProxyEntity(self, p_id, data["parent"][0])
-                self.__idMap[parent.getId()] = parent
+                self.__idMap[parent.getId()]=parent
         indexTerm = []
         if "indexTerm" in data:
             for i in data["indexTerm"]:
@@ -1065,7 +873,7 @@ class ICDExplorer:
                 else:
                     new_e = ProxyEntity(self, e_id, e["linearizationReference"])
                     exclusion.append(new_e)
-                    self.__idMap[new_e.getId()] = new_e
+                    self.__idMap[new_e.getId()]=new_e
         relatedEntitiesInMaternalChapter = []
         if "relatedEntitiesInMaternalChapter" in data:
             for e in data["relatedEntitiesInMaternalChapter"]:
@@ -1075,7 +883,7 @@ class ICDExplorer:
                 else:
                     new_e = ProxyEntity(self, e_id, e)
                     relatedEntitiesInMaternalChapter.append(new_e)
-                    self.__idMap[new_e.getId()] = new_e
+                    self.__idMap[new_e.getId()]=new_e
         relatedEntitiesInPerinatalChapter = []
         if "relatedEntitiesInPerinatalChapter" in data:
             for e in data["relatedEntitiesInPerinatalChapter"]:
@@ -1085,7 +893,7 @@ class ICDExplorer:
                 else:
                     new_e = ProxyEntity(self, e_id, e)
                     relatedEntitiesInPerinatalChapter.append(new_e)
-                    self.__idMap[new_e.getId()] = new_e
+                    self.__idMap[new_e.getId()]=new_e
         browserUrl = data["browserUrl"]
 
         if self.__useCodeRangesAsCodes and classKind == "block":
@@ -1115,11 +923,32 @@ class ICDExplorer:
             relatedEntitiesInPerinatalChapter,
             browserUrl,
         )
-        self.__idMap[id] = new_e
+        self.__idMap[id]=new_e
         if code != "":
-            self.__codeToIdMap[code] = id
+            self.__codeToIdMap[code]=id
 
         for c in newChildren:
             c._setParent(new_e)
 
         return new_e
+
+
+# Class that represents a single postcoordination axis, with its name, its fields and its list of entities
+class PostcoordinationAxis:
+    def __init__(self, axisName: str, requiredPostcoordination: bool, allowMultipleValues: str, scaleEntity: list[Entity]) -> None:
+        self.__axisName: str = axisName
+        self.__requiredPostCoordination: bool = requiredPostcoordination
+        self.__allowMultipleValues: str = allowMultipleValues
+        self.__scaleEntity: list[Entity] = scaleEntity
+    
+    def getAxisName(self) -> str:
+        return self.__axisName
+    
+    def getRequiredPostCoordination(self) -> bool:
+        return self.__requiredPostCoordination
+    
+    def getAllowMultipleValues(self) -> str:
+        return self.__allowMultipleValues
+    
+    def getScaleEntity(self) -> list[Entity]:
+        return self.__scaleEntity.copy() # shallow copy
