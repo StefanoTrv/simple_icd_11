@@ -395,3 +395,31 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         entity2 = explorer._getRealEntity("377572273")
         self.assertIsInstance(entity2,RealEntity)
         self.assertEqual(id(entity1),id(entity2))
+
+    def testEntityStr(self):
+        e = self.explorer.getEntityFromId("447363203")
+        self.assertEqual(str(e),"Assault by causing a fall or jump ( - 447363203)\n")
+        e = e.getChildren()[0]
+        self.assertEqual(str(e),"Assault by causing a fall or jump on same level or from less than 1 metre (PE00 - 553619529)\n")
+        e = self.explorer.getEntityFromId("1709907983")
+        self.assertEqual(str(e),"Acquired immunodeficiency due to loss of immunoglobulin (4A20.1 - 1709907983)\nAcquired immunodeficiency due to loss of immunoglobulins (protein loss) may occur via the GI tract (protein losing enteropathy), via the kidney (nephrotic syndrome) or via the skin (in severe skin damage).")
+
+    def testICDExplorerStr(self):
+        self.assertEqual(str(self.explorer).split("(")[0],"ICDExplorer ")
+        self.assertEqual(str(self.explorer).split(")")[1], ":\n\t- release: 2024-01\n\t- language: en\n\t- useCodeRangesAsCodes: False")
+
+
+
+class TestPostcoordinationAxis(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        f = open("api_credentials.txt", "r")
+        cls.clientId = f.readline().strip()
+        cls.clientSecret = f.readline().strip()
+        f.close()
+        cls.explorer = ICDExplorer("en",cls.clientId,cls.clientSecret,release="2024-01")
+        cls.explorerCodeRanges = ICDExplorer("en",cls.clientId,cls.clientSecret,release="2024-01",useCodeRangesAsCodes=True)
+    
+    def testPostcoordinationAxisStr(self):
+        print(str(self.explorer.getEntityFromId("1611724421")))
+        self.assertEqual(str(self.explorer.getEntityFromId("1611724421").getPostcoordinationScale()[0]), "hasManifestation\nIs NOT required\nAllow multiple values: AllowAlways\n\t- Dementia due to Alzheimer disease (6D80 - 795022044)")

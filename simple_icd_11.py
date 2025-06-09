@@ -363,6 +363,9 @@ class Entity(ABC):
     @abstractmethod
     def _appendExclusion(self, lst: list[Entity]) -> None: # includeFromUpperLevels is omitted from the parameters: it must be true!
         raise NotImplementedError()
+    
+    def __str__(self) -> str:
+        return self.getTitle() + " (" + self.getCode() + " - " + self.getId() + ")\n" + self.getDefinition()
 
 
 
@@ -931,6 +934,9 @@ class ICDExplorer:
             c._setParent(new_e)
 
         return new_e
+    
+    def __str__(self) -> str:
+        return "ICDExplorer (#" + str(id(self)) + "):\n\t- release: " + self.__release + "\n\t- language: " + self.__language + "\n\t- useCodeRangesAsCodes: " + str(self.__useCodeRangesAsCodes)
 
 
 # Class that represents a single postcoordination axis, with its name, its fields and its list of entities
@@ -952,3 +958,11 @@ class PostcoordinationAxis:
     
     def getScaleEntity(self) -> list[Entity]:
         return self.__scaleEntity.copy() # shallow copy
+    
+    def __str__(self) -> str:
+        if self.__requiredPostCoordination:
+            req_str = "Is required"
+        else:
+            req_str = "Is NOT required"
+        ent_str = "\n".join(["\t- " + e.getTitle() + " (" + e.getCode() + " - " + e.getId() + ")" for e in self.__scaleEntity])
+        return self.__axisName + "\n" + req_str + "\nAllow multiple values: " + self.__allowMultipleValues + "\n" + ent_str
