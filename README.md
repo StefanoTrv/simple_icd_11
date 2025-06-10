@@ -266,7 +266,7 @@ Returns a string describing the behaviour of this postcoordination axis. As per 
 >* `"AllowedExceptFromSameBlock"` means multiple values are allowed only if they are coming from different blocks within the value set.
 
 ### getScaleEntity() -> list[Entity]
-Returns the list of allowed entities for postcoordination. Keep in mind this note from the official [Swagger documentation](https://id.who.int/swagger/index.html):
+Returns the list of allowed entities for postcoordination. This list can be safely modified. Keep in mind this note from the official [Swagger documentation](https://id.who.int/swagger/index.html):
 > these are hierarchical starting points of the allowed value set. i.e. any descendant of the entities provided [here] can be used during postcoordination.
 
 ## Conclusion
