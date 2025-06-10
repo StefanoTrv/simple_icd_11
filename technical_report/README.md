@@ -12,9 +12,11 @@ The `Entity` interface is implemented as an abstract class, since Python does no
 The "package-private" method `_setParent()` is used to set the parent of the `ProxyEntity` after the parent itself has been created.  
 The "protected" methods of `Entity` are used to improve the performance of certain methods.
 
+The `PostcoordinationAxis` class represents individual axes of the postcoordination scale. `Entity` objects contain a list of `PostcoordinationAxis` objects, one for each axis in their entity's postcoordination scale.
+
 For the maximum flexibility of use for all kinds of users, it was decided to keep all the code in a single file. The code is small enough to be manageable even if contained within a single file.
 
-The only classes exported by the package, and thus visible to the user, are `ICDExplorer` and `Entity`.
+The only classes exported by the package, and thus visible to the user, are `ICDExplorer`, `Entity` and `PostcoordinationAxis`.
 
 The package has a single external dependency: the `requests` library.
 

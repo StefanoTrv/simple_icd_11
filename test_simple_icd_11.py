@@ -9,7 +9,7 @@ class TestICDOfficialAPIClient(unittest.TestCase):
         cls.clientSecret = f.readline().strip()
         f.close()
         cls.client = ICDOfficialAPIClient(cls.clientId,cls.clientSecret)
-    
+
     def compromiseToken(self):
         if(self.client._ICDOfficialAPIClient__token[-1]=="A"): # type: ignore
             self.client._ICDOfficialAPIClient__token = self.client._ICDOfficialAPIClient__token[:-1]+"B" # type: ignore
@@ -19,31 +19,31 @@ class TestICDOfficialAPIClient(unittest.TestCase):
             self.client._ICDOfficialAPIClient__token = "a"+self.client._ICDOfficialAPIClient__token[1:] # type: ignore
         else:
             self.client._ICDOfficialAPIClient__token = "w"+self.client._ICDOfficialAPIClient__token[1:] # type: ignore
-    
+
     def testLookupCodeOk(self):
         json_dict = self.client.lookupCode("1F0Y","2024-01","en")
         self.assertEqual(json_dict["code"],"1F0Y")
         self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/1646490591/other")
-    
+
     def testLookupCodeNotExists(self):
         with self.assertRaises(LookupError):
             self.client.lookupCode("banana","2024-01","en")
-    
+
     def testLookupCodeOkOldToken(self):
         self.compromiseToken()
         json_dict = self.client.lookupCode("1F0Y","2024-01","en")
         self.assertEqual(json_dict["code"],"1F0Y")
         self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/1646490591/other")
-    
+
     def testLookupIdOk(self):
         json_dict = self.client.lookupId("218513628","2024-01","en")
         self.assertEqual(json_dict["code"],"9B71.1")
         self.assertEqual(json_dict["@id"],"http://id.who.int/icd/release/11/2024-01/mms/218513628")
-    
+
     def testLookupIdNotExists(self):
         with self.assertRaises(LookupError):
             self.client.lookupId("5","2024-01","en")
-    
+
     def testLookupIdOkOldToken(self):
         self.compromiseToken()
         json_dict = self.client.lookupId("218513628","2024-01","en")
@@ -52,21 +52,21 @@ class TestICDOfficialAPIClient(unittest.TestCase):
 
     def testGetLatestReleaseOk(self): #needs to be updated when new release comes out
         self.assertEqual(self.client.getLatestRelease("en"),"2025-01")
-    
+
     def testGetLatestReleaseWrongLanguage(self):
         with self.assertRaises(LookupError):
             self.client.getLatestRelease("onion")
-    
+
     def testGetLatestReleaseOldToken(self): #needs to be updated when new release comes out
         self.compromiseToken()
         self.assertEqual(self.client.getLatestRelease("en"),"2025-01")
-    
+
     def testCheckReleaseTrue(self):
         self.assertTrue(self.client.checkRelease("2024-01","en"))
-    
+
     def testCheckReleaseFalse(self):
         self.assertFalse(self.client.checkRelease("3124-01","en"))
-    
+
     def testCheckReleaseOldToken(self):
         self.compromiseToken()
         self.assertTrue(self.client.checkRelease("2024-01","en"))
@@ -75,7 +75,7 @@ class TestICDOfficialAPIClient(unittest.TestCase):
         t1 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
         t2 = ICDOfficialAPIClient(self.clientId,self.clientSecret)
         self.assertTrue(t1 is t2)
-    
+
     def testWrongClientSecretDoesNotBreakExisting(self):
         self.assertRaises(ConnectionError, lambda: ICDOfficialAPIClient(self.clientId,"rabarbaro"))
         self.compromiseToken()
@@ -83,7 +83,7 @@ class TestICDOfficialAPIClient(unittest.TestCase):
             self.client.checkRelease("2024-01","en")
         except Exception as e:
             self.fail("Unexpected exception raised by checkRelease(): " + repr(e))
-    
+
     def testCreateClientAfterBadSecret(self):
         ICDOfficialAPIClient._instances={}
         self.assertRaises(ConnectionError, lambda: ICDOfficialAPIClient(self.clientId,"ramandolo"))
@@ -103,19 +103,19 @@ class TestProxyEntity(unittest.TestCase):
         clientSecret = f.readline().strip()
         f.close()
         cls.explorer = ICDExplorer("en",clientId,clientSecret,release="2024-01")
-    
+
     def testNoLookup(self):
         fake_uri = "it.wikipedia.org/wiki/Convento_dei_Domenicani_(Pordenone)"
         prx = ProxyEntity(self.explorer,"557175275",fake_uri)
         self.assertEqual(prx.getURI(),fake_uri)
-    
+
     def testDoesLookup(self):
         prx = ProxyEntity(self.explorer,"557175275","icd.who.int/browse/2024-01/mms/557175275")
         self.assertEqual(prx.getCode(),"8B25.4")
 
 
 
-class TestICDExplorer(unittest.TestCase): #tests also RealEntity
+class TestPackageCore(unittest.TestCase): #tests ICDExplorer, RealEntity and Postcoordination
     @classmethod
     def setUpClass(cls):
         f = open("api_credentials.txt", "r")
@@ -134,7 +134,7 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertTrue(self.explorer.isValidCode("02"))
         self.assertFalse(self.explorerCodeRanges.isValidCode("banana"))
         self.assertFalse(self.explorer.isValidCode("banana"))
-    
+
     def testIsValidId(self):
         self.assertTrue(self.explorer.isValidId("183230446"))
         self.assertTrue(self.explorer.isValidId("1042184245/unspecified"))
@@ -153,41 +153,41 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertEqual(e.getCode(),"5C90.0")
         with self.assertRaises(LookupError):
             self.explorer.getEntityFromId("5A00-5B3Z")
-    
+
     def testGetLanguage(self):
         self.assertEqual(self.explorer.getLanguage(),"en")
-    
+
     def testGetRelease(self):
         self.assertEqual(self.explorer.getRelease(),"2024-01")
-    
+
     def testWrongLanguage(self):
         with self.assertRaises(LookupError):
             ICDExplorer("klingon",self.clientId,self.clientSecret,release="2024-01")
-    
+
     def testWrongRelease(self):
         with self.assertRaises(LookupError):
             ICDExplorer("en",self.clientId,self.clientSecret,release="3034-01")
-    
+
     def testGetId(self):
         e = self.explorer.getEntityFromCode("2B30")
         self.assertEqual(e.getId(),"1528863768")
-    
+
     def testGetURI(self):
         e = self.explorer.getEntityFromCode("2B30")
         self.assertEqual(e.getURI(),"http://id.who.int/icd/release/11/2024-01/mms/1528863768")
-    
+
     def testGetCode(self):
         e = self.explorer.getEntityFromCode("2B30")
         self.assertEqual(e.getCode(),"2B30")
-    
+
     def testGetTitle(self):
         e = self.explorer.getEntityFromCode("2B30")
         self.assertEqual(e.getTitle(),"Hodgkin lymphoma")
-    
+
     def testGetDefinition(self):
         e = self.explorer.getEntityFromCode("2B30")
         self.assertEqual(e.getDefinition(),"Malignant lymphomas, previously known as Hodgkin's disease, characterised by the presence of large tumour cells in an abundant admixture of nonneoplastic cells. There are two distinct subtypes: nodular lymphocyte predominant Hodgkin lymphoma and classical Hodgkin lymphoma. Hodgkin lymphoma involves primarily lymph nodes.")
-    
+
     def testGetLongDefinition(self):
         e = self.explorer.getEntityFromCode("2B30")
         self.assertEqual(e.getLongDefinition(),"")
@@ -198,7 +198,7 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         # couldn't find any example with a non-empty field!
         e = self.explorer.getEntityFromCode("2B30")
         self.assertEqual(e.getFullySpecifiedName(),"")
-    
+
     def testDiagnosticCriteria(self):
         e = self.explorer.getEntityFromCode("6E40")
         self.assertIn("# 6E40 General Diagnostic Requirements for Psychological or Behavioural Factors Affecting Disorders or Diseases Classified Elsewhere \n\n## Essential",e.getDiagnosticCriteria())
@@ -208,19 +208,19 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         e = self.explorer.getEntityFromId("2019647878")
         self.assertEqual(e.getCodingNote(),"")
         self.assertEqual(e.getCodingNote(includeFromUpperLevels=True),"")
-    
+
     def testGetBlockId(self):
         e = self.explorer.getEntityFromId("2019647878")
         self.assertEqual(e.getBlockId(),"")
         e = self.explorer.getEntityFromId("1147802348")
         self.assertEqual(e.getBlockId(),"BlockL2-2A3")
-    
+
     def testGetCodeRange(self):
         e = self.explorer.getEntityFromId("2019647878")
         self.assertEqual(e.getCodeRange(),"")
         e = self.explorer.getEntityFromId("1147802348")
         self.assertEqual(e.getCodeRange(),"2A30-2A3Z")
-    
+
     def testGetClassKind(self):
         e = self.explorer.getEntityFromCode("13")
         self.assertEqual(e.getClassKind(),"chapter")
@@ -230,7 +230,7 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertEqual(e.getClassKind(),"category")
         e = self.explorer.getEntityFromId("1503334455")
         self.assertEqual(e.getClassKind(),"window")
-    
+
     def testIsResidual(self):
         e = self.explorer.getEntityFromCode("13")
         self.assertFalse(e.isResidual())
@@ -238,7 +238,7 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertTrue(e.isResidual())
         e = self.explorer.getEntityFromCode("DA2Z")
         self.assertTrue(e.isResidual())
-    
+
     def testGetChildren(self):
         # empty
         e = self.explorer.getEntityFromCode("DA24.00")
@@ -258,7 +258,7 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         for c in children:
             self.assertIn(c.getId(),correct_children)
             correct_children.remove(c.getId())
-    
+
     def testGetChildrenElsewhere(self):
         # empty
         e = self.explorer.getEntityFromCode("DA24.00")
@@ -268,7 +268,7 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         children = e.getChildrenElsewhere()
         self.assertEqual(len(children),1)
         self.assertEqual(children[0].getId(),"2140459587")
-    
+
     def testGetDescendants(self):
         # empty
         e = self.explorer.getEntityFromCode("DA24.00")
@@ -291,7 +291,7 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertTrue(e.getParent() is None)
         e = self.explorer.getEntityFromId("120848300")
         self.assertEqual(e.getParent().getCode(),"9C81") # type: ignore
-    
+
     def testGetAncestors(self):
         e = self.explorer.getEntityFromCode("X")
         self.assertEqual(e.getAncestors(),[])
@@ -349,6 +349,42 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertEqual(len(rl),1)
         self.assertEqual(rl[0].getId(),"1270001765")
 
+    def testGetPostcoordinationScale(self):
+        # entity #1780040028 (has data)
+        e = self.explorer.getEntityFromId("1780040028")
+        postcoord_scale = e.getPostcoordinationScale()
+        self.assertEqual(len(postcoord_scale), 3)
+        self.assertEqual([axis.getAxisName() for axis in postcoord_scale], ["infectiousAgent", "hasManifestation", "associatedWith"])
+        correct_infectious_agent = ["833038527","1423652218","77655243"]
+        correct_has_manifestation = ["1370972705", "2044414353", "1112214727", "1472717853"]
+        correct_associated_with = ["1837021781"]
+        for axis in postcoord_scale:
+            self.assertFalse(axis.getRequiredPostCoordination())
+            self.assertEqual(axis.getAllowMultipleValues(),"AllowAlways")
+            if axis.getAxisName()=="infectiousAgent":
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_infectious_agent)
+                    correct_infectious_agent.remove(c.getId())
+                self.assertEqual(len(correct_infectious_agent),0)
+            elif axis.getAxisName()=="hasManifestation":
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_has_manifestation)
+                    correct_has_manifestation.remove(c.getId())
+                self.assertEqual(len(correct_has_manifestation),0)
+            else: #associatedWith
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_associated_with)
+                    correct_associated_with.remove(c.getId())
+                self.assertEqual(len(correct_associated_with),0)
+        #entity 985094335 (has no data)
+        e = self.explorer.getEntityFromId("985094335")
+        postcoord_scale = e.getPostcoordinationScale()
+        self.assertEqual(len(postcoord_scale), 0)
+        #entity 1408386909 (postcoordination required)
+        e = self.explorer.getEntityFromId("1408386909")
+        postcoord_axis = e.getPostcoordinationScale()[0]
+        self.assertTrue(postcoord_axis.getRequiredPostCoordination())
+
     def testGetBrowserUrl(self):
         e = self.explorer.getEntityFromCode("V")
         self.assertEqual(e.getBrowserUrl(),"https://icd.who.int/browse/2024-01/mms/en#231358748")
@@ -365,3 +401,18 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         entity2 = explorer._getRealEntity("377572273")
         self.assertIsInstance(entity2,RealEntity)
         self.assertEqual(id(entity1),id(entity2))
+
+    def testEntityStr(self):
+        e = self.explorer.getEntityFromId("447363203")
+        self.assertEqual(str(e),"Assault by causing a fall or jump ( - 447363203)\n")
+        e = e.getChildren()[0]
+        self.assertEqual(str(e),"Assault by causing a fall or jump on same level or from less than 1 metre (PE00 - 553619529)\n")
+        e = self.explorer.getEntityFromId("1709907983")
+        self.assertEqual(str(e),"Acquired immunodeficiency due to loss of immunoglobulin (4A20.1 - 1709907983)\nAcquired immunodeficiency due to loss of immunoglobulins (protein loss) may occur via the GI tract (protein losing enteropathy), via the kidney (nephrotic syndrome) or via the skin (in severe skin damage).")
+
+    def testICDExplorerStr(self):
+        self.assertEqual(str(self.explorer).split("(")[0],"ICDExplorer ")
+        self.assertEqual(str(self.explorer).split(")")[1], ":\n\t- release: 2024-01\n\t- language: en\n\t- useCodeRangesAsCodes: False")
+    
+    def testPostcoordinationAxisStr(self):
+        self.assertEqual(str(self.explorer.getEntityFromId("1611724421").getPostcoordinationScale()[0]), "hasManifestation\nIs NOT required\nAllow multiple values: AllowAlways\n\t- Dementia due to Alzheimer disease (6D80 - 795022044)")

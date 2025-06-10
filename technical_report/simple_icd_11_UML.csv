@@ -49,25 +49,26 @@ Entity","​+ getId()
 + getExclusion(includeFromUpperLevels)
 + getRelatedEntitiesInMaternalChapter()
 + getRelatedEntitiesInPerinatalChapter()
++ getPostcoordinationScale()
 + getBrowserUrl()
 # appendDescendants(includeChildrenElsewhere, lst)
 # appendAncestors(lst)
 # appendExclusion(lst)",,
-12,Class,UML,2,,,,,,,,RealEntity,"​- id
+12,DividerBlock,,2,,,,,,,,,,,
+13,Class,UML,2,,,,,,,,RealEntity,"​- id
 - uri
 - code
 - title
 - ...",,
-13,Class,UML,2,,,,,,,,ProxyEntity,"​- real : Entity [0..1]
+14,DividerBlock,,2,,,,,,,,,,,
+15,Class,UML,2,,,,,,,,ProxyEntity,"​- real : Entity [0..1]
 - explorer : ICDExplorer
 - id
 - uri
 - parent : Entity [0..1]",~ setParent(p : Entity),
-14,DividerBlock,,2,,,,,,,,,,,
-15,DividerBlock,,2,,,,,,,,,,,
-16,Isosceles triangle,Geometric Shapes,2,,,,,,,,,,,
-17,Text,Standard,2,,,,,,,,​- real,,,
-18,DividerBlock,,2,,,,,,,,,,,
+16,DividerBlock,,2,,,,,,,,,,,
+17,Isosceles triangle,Geometric Shapes,2,,,,,,,,,,,
+18,MinimalTextBlock,Standard,2,,,,,,,,​- real,,,
 19,DividerBlock,,2,,,,,,,,,,,
 20,DividerBlock,,2,,,,,,,,,,,
 21,Note,UML,2,,,,,,,,Singleton: one for each clientId,,,
@@ -75,12 +76,20 @@ Entity","​+ getId()
 23,Note,UML,2,,,,,,,,Strategy Pattern,,,
 24,Note,UML,2,,,,,,,,Proxy Pattern,,,
 25,Isosceles triangle,Geometric Shapes,2,,,,,,,,,,,
-26,Line,,2,,,13,12,None,Arrow,,,,,
-27,Line,,2,,,13,11,None,Arrow,,,,,
-28,Line,,2,,,12,11,None,Arrow,,,,,
-29,Line,,2,,,11,7,None,Composition,,,,,
-30,Line,,2,,,21,9,None,None,,,,,
-31,Line,,2,,,22,10,None,None,,,,,
-32,Line,,2,,,4,23,None,None,,,,,
-33,Line,,2,,,24,3,None,None,,,,,
-34,Line,,2,,,7,8,None,Arrow,,,,,
+26,Class,UML,2,,,,,,,,PostcoordinationAxis,"​- axisName
+- requiredPostCoordination
+- allowMultipleValues
+- scaleEntity : list[Entity]","​+ getAxisName()
++ getRequiredPostCoordination()
++ getAllowMultipleValues()
++ getScaleEntity()",
+27,Line,,2,,,15,13,None,Arrow,,,,,
+28,Line,,2,,,15,11,None,Arrow,,,,,
+29,Line,,2,,,13,11,None,Arrow,,,,,
+30,Line,,2,,,11,7,None,Composition,,,,,
+31,Line,,2,,,21,9,None,None,,,,,
+32,Line,,2,,,22,10,None,None,,,,,
+33,Line,,2,,,4,23,None,None,,,,,
+34,Line,,2,,,24,3,None,None,,,,,
+35,Line,,2,,,7,8,None,Arrow,,,,,
+36,Line,,2,,,13,26,Composition,None,,,,,

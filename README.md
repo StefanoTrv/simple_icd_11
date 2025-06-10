@@ -38,7 +38,13 @@ A simple python library for ICD-11 MMS codes
   * [getExclusion(includeFromUpperLevels : bool = True) -> list[Entity]](#getexclusionincludefromupperlevels--bool--true---listentity)
   * [getRelatedEntitiesInMaternalChapter() -> list[Entity]](#getrelatedentitiesinmaternalchapter---listentity)
   * [getRelatedEntitiesInPerinatalChapter() -> list[Entity]](#getrelatedentitiesinperinatalchapter---listentity)
+  * [getPostcoordinationScale() -> list[PostcoordinationAxis]](#getpostcoordinationscale---listpostcoordinationaxis)
   * [getBrowserUrl() -> str](#getbrowserurl---str)
+* [PostcoordinationAxis](#postcoordinationaxis)
+  * [getAxisName() -> str](#getaxisname---str)
+  * [getRequiredPostCoordination() -> bool](#getrequiredpostcoordination---bool)
+  * [getAllowMultipleValues() -> str](#getallowmultiplevalues---str)
+  * [getScaleEntity() -> list[Entity]](#getscaleentity---listentity)
 * [Conclusion](#conclusion)
 
 ## Release notes
@@ -49,7 +55,7 @@ A simple python library for ICD-11 MMS codes
 This library aims to offer an easier way to work with codes and entities from **ICD-11 MMS**, that is the Mortality and Morbidity Statistics linearization of ICD-11. For simplicity's sake, from now on I'll refer to this linearization as simply ICD-11. It allows users to connect to the official WHO API for ICD-11 or to unofficial deployments of the API, choose the preferred available language and release (or just use the latest release), check if a code exists and see most of the data associated with it, including its ancestors and descendants in the classification.  
 The way this library achieves its purpose is by providing simplified access to some of the information provided by the [ICD-11 API](https://icd.who.int/icdapi) released by the WHO. The library also allows access to other deployments of the API, for example local deployments. It should be noted that using a local deployment of the API will always be faster than connecting to the official one. To learn more, read the [Setup](#setup) section.  
 To reduce the overhead of getting the data of entities, each entity is looked up in the API only once and its value is then cached for subsequent calls. This is completely transparent to the user, with the only perceivable difference being the overhead time of the first method call compared to the following ones.  
-Not all of the functionalities of the API are included in this library. First of all, this library only deals with the ICD-11 MMS linearization, while the API allows to also explore ICD-10 codes and foundation entities. Also, the API provides, for the ICD-11 entities, some data that is not made available in this library. For example: foundation entities are not supported, even when they appear in relation to ICD-11 MMS entities; when in the data of an entity provided by the API there's a list of other labeled entities, this library lists the entities without their context-specific label; and post-coordination data for the single entities is not supported. While the functionalities offered by this library should be sufficient for the needs of the great majority of the use-cases, if you find that something that you need is missing, including the functionalities I just mentioned, feel free to let me know. See the [Documentation](#documentation) for the details of the available functionalities.  
+Not all of the functionalities of the API are included in this library. First of all, this library only deals with the ICD-11 MMS linearization, while the API allows to also explore ICD-10 codes and foundation entities. Also, the API provides, for the ICD-11 entities, some data that is not made available in this library. For example: foundation entities are not supported, even when they appear in relation to ICD-11 MMS entities; and when in the data of an entity provided by the API there's a list of other labeled entities, this library lists the entities without their context-specific label. While the functionalities offered by this library should be sufficient for the needs of the great majority of the use-cases, if you find that something that you need is missing, including the functionalities I just mentioned, feel free to let me know. See the [Documentation](#documentation) for the details of the available functionalities.  
 If you need to learn more about the meaning of the various fields of the ICD-11 entities, please see the [official ICD-11 reference guide](https://icdcdn.who.int/icd11referenceguide/en/html/index.html) and the [ICD schema](https://icd.who.int/icdapi/docs/ICD-schema.html). The paragraph on ICD-11 MMS in the [Wikipedia page for ICD-11](https://en.wikipedia.org/wiki/ICD-11#ICD-11_MMS) may be informative on the classification as a whole. Sadly, there's no place where to find a complete and exhaustive explanation of these fields, some other pieces of information can be found in the [Swagger documentation of the API](https://id.who.int/swagger/index.html) (scroll to the bottom and see LinearizationEntity).  
 If you are looking for a library to manage ICD-10 or ICD-10 CM codes, you can check out, respectively, the [simple_icd_10](https://github.com/StefanoTrv/simple_icd_10) and the [simple_icd_10_CM](https://github.com/StefanoTrv/simple_icd_10_CM) libraries.
 Please, feel free to contact me for suggestions, feature requests and, especially, bug reports. You can also contact me if you need any help with this library, especially if you find that something in this document is not clear enough. I will, however, probably be unable to help with issues strictly related to the classification or with the use or setup of the API. If you feel like supporting me, please check out the [Conclusion](#conclusion) section.  
@@ -95,7 +101,7 @@ explorer = ICDExplorer(language,"","",customUrl="http://localhost/")
 ```
 
 ## Documentation
-The library exposes two kinds of objects to the user: `ICDExplorer` and `Entity`. Here follows the documentation for these two classes.
+The library exposes three kinds of objects to the user: `ICDExplorer`, `Entity` and `PostcoordinationAxis`. Here follows the documentation for these three classes.
 
 ## ICDExplorer
 The `ICDExplorer` class interacts with the API to retrieve, parse, and store the data of the ICD-11 entities. You can use it to look up codes and IDs, and it will return `Entity` objects containing the data of the entity that has such code or id.  
@@ -237,8 +243,31 @@ Returns the list of related entities in the maternal chapter for this entity.
 ### getRelatedEntitiesInPerinatalChapter() -> list[Entity]
 Returns the list of related entities in the perinatal chapter for this entity.
 
+### getPostcoordinationScale() -> list[PostcoordinationAxis]
+Returns a list of `PostcoordinationAxis` objects representing the post-coordination scale of the entity. For more information on the `PostcoordinationAxis` class, see [PostcoordinationAxis](#postcoordinationaxis).
+
 ### getBrowserUrl() -> str
 Returns the browser URL of this entity. Unlike the URI, if another deployment is being used, the browser URL will point to that specific deployment.
+
+## PostcoordinationAxis
+`PostcoordinationAxis` is a simple class that represents individual postcoordination axes of `Entity` objects. The [`getPostcoordinationScale()`](#getpostcoordinationscale---listpostcoordinationaxis) method of the `Entity` class returns the list of `PostcoordinationAxis` objects for the given entity.
+
+### getAxisName() -> str
+Returns the name of the axis. While in the official API the name of an axis is its whole URI, here the name is only the final part of the URI. This is also different from the axis name that is displayed in the official ICD-11 MMS browser.  
+For example, the postcoordination axis for the "6D70.0" code is named "*Has causing condition*" in the browser, "*http\://id.who.int/icd/schema/hasCausingCondition*" in the official API and "*hasCausingCondition*" in this package.
+
+### getRequiredPostCoordination() -> bool
+Returns `True` if this is a required postcoordination axis, `False` if it is optional.
+
+### getAllowMultipleValues() -> str
+Returns a string describing the behaviour of this postcoordination axis. As per the official [Swagger documentation](https://id.who.int/swagger/index.html):
+>* `"AllowAlways"` means the user [can] post-coordinate multiple times using this axis;
+>* `"NotAllowed"` means the user [can] only post-coordinate once using this axis;
+>* `"AllowedExceptFromSameBlock"` means multiple values are allowed only if they are coming from different blocks within the value set.
+
+### getScaleEntity() -> list[Entity]
+Returns the list of allowed entities for postcoordination. This list can be safely modified. Keep in mind this note from the official [Swagger documentation](https://id.who.int/swagger/index.html):
+> these are hierarchical starting points of the allowed value set. i.e. any descendant of the entities provided [here] can be used during postcoordination.
 
 ## Conclusion
 This should be everything you need to know about the simple_icd_11 library. Please contact me if you find any mistake, bug, missing feature or anything else that could be improved or made easier to understand, both in this documentation and in the library itself.
