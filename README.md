@@ -48,6 +48,7 @@ A simple python library for ICD-11 MMS codes
 * [Conclusion](#conclusion)
 
 ## Release notes
+* **1.2.0** Added support for postcoordination; added `__str__` methods for all the exported classes. Thanks to @guohuiyuan on Github for contributing!
 * **1.1.0:** Removed the useless and dangerous ability to modify a correct clientSecret (useless because the official API does not allow to change the clientSecret of a given clientId). Under some very specific circumstances, an "ICDExplorer" could have sent to the API two requests for the same code: this has now been fixed. Improved the performance of three methods of "Entity".
 * **1.0.0:** Initial release
 
