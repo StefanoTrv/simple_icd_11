@@ -301,10 +301,6 @@ class Entity(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
-        raise NotImplementedError()
-
-    @abstractmethod
     def isResidual(self) -> bool:
         raise NotImplementedError()
 
@@ -346,6 +342,10 @@ class Entity(ABC):
 
     @abstractmethod
     def getRelatedEntitiesInPerinatalChapter(self) -> list[Entity]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -434,11 +434,6 @@ class ProxyEntity(Entity):
             self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getClassKind() # type: ignore
 
-    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
-        if self.__real is None:
-            self.__real = self.__explorer._getRealEntity(self.__id)
-        return self.__real.getPostcoordinationScale() # type: ignore
-
     def isResidual(self) -> bool:
         return "unspecified" in self.__id or "other" in self.__id
 
@@ -495,6 +490,11 @@ class ProxyEntity(Entity):
             self.__real = self.__explorer._getRealEntity(self.__id)
         return self.__real.getRelatedEntitiesInPerinatalChapter() # type: ignore
 
+    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
+        if self.__real is None:
+            self.__real = self.__explorer._getRealEntity(self.__id)
+        return self.__real.getPostcoordinationScale() # type: ignore
+
     def getBrowserUrl(self) -> str:
         if self.__real is None:
             self.__real = self.__explorer._getRealEntity(self.__id)
@@ -536,7 +536,6 @@ class RealEntity(Entity):
         blockId: str,
         codeRange: str,
         classKind: str,
-        postcoordinationScale: list[PostcoordinationAxis],
         children: list[Entity],
         childrenElsewhere: list[Entity],
         parent: Entity | None,
@@ -545,6 +544,7 @@ class RealEntity(Entity):
         exclusion: list[Entity],
         relatedEntitiesInMaternalChapter: list[Entity],
         relatedEntitiesInPerinatalChapter: list[Entity],
+        postcoordinationScale: list[PostcoordinationAxis],
         browserUrl: str,
     ) -> None:
         self.__id = id
@@ -559,7 +559,6 @@ class RealEntity(Entity):
         self.__blockId = blockId
         self.__codeRange = codeRange
         self.__classKind = classKind
-        self.__postcoordinationScale = postcoordinationScale
         self.__children = children
         self.__childrenElsewhere = childrenElsewhere
         self.__parent = parent
@@ -568,6 +567,7 @@ class RealEntity(Entity):
         self.__exclusion = exclusion
         self.__relatedEntitiesInMaternalChapter = relatedEntitiesInMaternalChapter
         self.__relatedEntitiesInPerinatalChapter = relatedEntitiesInPerinatalChapter
+        self.__postcoordinationScale = postcoordinationScale
         self.__browserUrl = browserUrl
 
     def getId(self) -> str:
@@ -612,9 +612,6 @@ class RealEntity(Entity):
     def getClassKind(self) -> str:
         return self.__classKind
 
-    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
-        return self.__postcoordinationScale.copy()
-
     def isResidual(self) -> bool:
         return "unspecified" in self.__id or "other" in self.__id
 
@@ -657,6 +654,9 @@ class RealEntity(Entity):
 
     def getRelatedEntitiesInPerinatalChapter(self) -> list[Entity]:
         return self.__relatedEntitiesInPerinatalChapter.copy()
+
+    def getPostcoordinationScale(self) -> list[PostcoordinationAxis]:
+        return self.__postcoordinationScale.copy()
 
     def getBrowserUrl(self) -> str:
         return self.__browserUrl
@@ -812,22 +812,6 @@ class ICDExplorer:
         if "codeRange" in data:
             codeRange = data["codeRange"]
         classKind = data["classKind"]
-        postcoordinationScale: list[PostcoordinationAxis] = []
-        if "postcoordinationScale" in data:
-            for c in data["postcoordinationScale"]:
-                axisName: str = c["axisName"].split("/schema/")[1]
-                requiredPostcoordination: bool = c["requiredPostcoordination"] == "true"
-                allowMultipleValues: str = c["allowMultipleValues"]
-                scaleEntity: list[Entity] = []
-                for e in c["scaleEntity"]:
-                    e_id = e.split("/mms/")[1]
-                    if e_id in self.__idMap:
-                        scaleEntity.append(self.__idMap[e_id])
-                    else:
-                        new_e = ProxyEntity(self, e_id, c)
-                        scaleEntity.append(new_e)
-                        self.__idMap[new_e.getId()] = new_e
-                postcoordinationScale.append(PostcoordinationAxis(axisName, requiredPostcoordination, allowMultipleValues, scaleEntity))
         children: list[Entity] = []
         newChildren: list[ProxyEntity] = []
         if "child" in data:
@@ -897,6 +881,22 @@ class ICDExplorer:
                     new_e = ProxyEntity(self, e_id, e)
                     relatedEntitiesInPerinatalChapter.append(new_e)
                     self.__idMap[new_e.getId()]=new_e
+        postcoordinationScale: list[PostcoordinationAxis] = []
+        if "postcoordinationScale" in data:
+            for c in data["postcoordinationScale"]:
+                axisName: str = c["axisName"].split("/schema/")[1]
+                requiredPostcoordination: bool = c["requiredPostcoordination"] == "true"
+                allowMultipleValues: str = c["allowMultipleValues"]
+                scaleEntity: list[Entity] = []
+                for e in c["scaleEntity"]:
+                    e_id = e.split("/mms/")[1]
+                    if e_id in self.__idMap:
+                        scaleEntity.append(self.__idMap[e_id])
+                    else:
+                        new_e = ProxyEntity(self, e_id, c)
+                        scaleEntity.append(new_e)
+                        self.__idMap[new_e.getId()] = new_e
+                postcoordinationScale.append(PostcoordinationAxis(axisName, requiredPostcoordination, allowMultipleValues, scaleEntity))
         browserUrl = data["browserUrl"]
 
         if self.__useCodeRangesAsCodes and classKind == "block":
@@ -915,7 +915,6 @@ class ICDExplorer:
             blockId,
             codeRange,
             classKind,
-            postcoordinationScale,
             children,
             childrenElsewhere,
             parent,
@@ -924,6 +923,7 @@ class ICDExplorer:
             exclusion,
             relatedEntitiesInMaternalChapter,
             relatedEntitiesInPerinatalChapter,
+            postcoordinationScale,
             browserUrl,
         )
         self.__idMap[id]=new_e

@@ -115,7 +115,7 @@ class TestProxyEntity(unittest.TestCase):
 
 
 
-class TestICDExplorer(unittest.TestCase): #tests also RealEntity
+class TestPackageCore(unittest.TestCase): #tests ICDExplorer, RealEntity and Postcoordination
     @classmethod
     def setUpClass(cls):
         f = open("api_credentials.txt", "r")
@@ -230,36 +230,6 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertEqual(e.getClassKind(),"category")
         e = self.explorer.getEntityFromId("1503334455")
         self.assertEqual(e.getClassKind(),"window")
-
-    def testGetPostcoordinationScale(self):
-        # entity #1780040028 (has data)
-        e = self.explorer.getEntityFromId("1780040028")
-        postcoord_scale = e.getPostcoordinationScale()
-        self.assertEqual(len(postcoord_scale), 3)
-        self.assertEqual([axis.getAxisName() for axis in postcoord_scale], ["infectiousAgent", "hasManifestation", "associatedWith"])
-        correct_infectious_agent = ["833038527","1423652218","77655243"]
-        correct_has_manifestation = ["1370972705", "2044414353", "1112214727", "1472717853"]
-        correct_associated_with = ["1837021781"]
-        for axis in postcoord_scale:
-            if axis.getAxisName()=="infectiousAgent":
-                for c in axis.getScaleEntity():
-                    self.assertIn(c.getId(), correct_infectious_agent)
-                    correct_infectious_agent.remove(c.getId())
-                self.assertEqual(len(correct_infectious_agent),0)
-            elif axis.getAxisName()=="hasManifestation":
-                for c in axis.getScaleEntity():
-                    self.assertIn(c.getId(), correct_has_manifestation)
-                    correct_has_manifestation.remove(c.getId())
-                self.assertEqual(len(correct_has_manifestation),0)
-            else: #associatedWith
-                for c in axis.getScaleEntity():
-                    self.assertIn(c.getId(), correct_associated_with)
-                    correct_associated_with.remove(c.getId())
-                self.assertEqual(len(correct_associated_with),0)
-        #entity 985094335 (has no data)
-        e = self.explorer.getEntityFromId("985094335")
-        postcoord_scale = e.getPostcoordinationScale()
-        self.assertEqual(len(postcoord_scale), 0)
 
     def testIsResidual(self):
         e = self.explorer.getEntityFromCode("13")
@@ -379,6 +349,42 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
         self.assertEqual(len(rl),1)
         self.assertEqual(rl[0].getId(),"1270001765")
 
+    def testGetPostcoordinationScale(self):
+        # entity #1780040028 (has data)
+        e = self.explorer.getEntityFromId("1780040028")
+        postcoord_scale = e.getPostcoordinationScale()
+        self.assertEqual(len(postcoord_scale), 3)
+        self.assertEqual([axis.getAxisName() for axis in postcoord_scale], ["infectiousAgent", "hasManifestation", "associatedWith"])
+        correct_infectious_agent = ["833038527","1423652218","77655243"]
+        correct_has_manifestation = ["1370972705", "2044414353", "1112214727", "1472717853"]
+        correct_associated_with = ["1837021781"]
+        for axis in postcoord_scale:
+            self.assertFalse(axis.getRequiredPostCoordination())
+            self.assertEqual(axis.getAllowMultipleValues(),"AllowAlways")
+            if axis.getAxisName()=="infectiousAgent":
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_infectious_agent)
+                    correct_infectious_agent.remove(c.getId())
+                self.assertEqual(len(correct_infectious_agent),0)
+            elif axis.getAxisName()=="hasManifestation":
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_has_manifestation)
+                    correct_has_manifestation.remove(c.getId())
+                self.assertEqual(len(correct_has_manifestation),0)
+            else: #associatedWith
+                for c in axis.getScaleEntity():
+                    self.assertIn(c.getId(), correct_associated_with)
+                    correct_associated_with.remove(c.getId())
+                self.assertEqual(len(correct_associated_with),0)
+        #entity 985094335 (has no data)
+        e = self.explorer.getEntityFromId("985094335")
+        postcoord_scale = e.getPostcoordinationScale()
+        self.assertEqual(len(postcoord_scale), 0)
+        #entity 1408386909 (postcoordination required)
+        e = self.explorer.getEntityFromId("1408386909")
+        postcoord_axis = e.getPostcoordinationScale()[0]
+        self.assertTrue(postcoord_axis.getRequiredPostCoordination())
+
     def testGetBrowserUrl(self):
         e = self.explorer.getEntityFromCode("V")
         self.assertEqual(e.getBrowserUrl(),"https://icd.who.int/browse/2024-01/mms/en#231358748")
@@ -407,19 +413,6 @@ class TestICDExplorer(unittest.TestCase): #tests also RealEntity
     def testICDExplorerStr(self):
         self.assertEqual(str(self.explorer).split("(")[0],"ICDExplorer ")
         self.assertEqual(str(self.explorer).split(")")[1], ":\n\t- release: 2024-01\n\t- language: en\n\t- useCodeRangesAsCodes: False")
-
-
-
-class TestPostcoordinationAxis(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        f = open("api_credentials.txt", "r")
-        cls.clientId = f.readline().strip()
-        cls.clientSecret = f.readline().strip()
-        f.close()
-        cls.explorer = ICDExplorer("en",cls.clientId,cls.clientSecret,release="2024-01")
-        cls.explorerCodeRanges = ICDExplorer("en",cls.clientId,cls.clientSecret,release="2024-01",useCodeRangesAsCodes=True)
     
     def testPostcoordinationAxisStr(self):
-        print(str(self.explorer.getEntityFromId("1611724421")))
         self.assertEqual(str(self.explorer.getEntityFromId("1611724421").getPostcoordinationScale()[0]), "hasManifestation\nIs NOT required\nAllow multiple values: AllowAlways\n\t- Dementia due to Alzheimer disease (6D80 - 795022044)")
